@@ -1,0 +1,14 @@
+;
+; BIND data file for local loopback interface
+;
+$TTL	604800
+@	IN	SOA	rt1.mrt. root.rt1.mrt. (
+			     1		; Serial
+			 604800		; Refresh
+			  86400		; Retry
+			2419200		; Expire
+			 604800 )	; Negative Cache TTL
+@	IN	NS	rt1.mrt.
+@	IN	A	172.18.10.10
+
+; Nodes in domain

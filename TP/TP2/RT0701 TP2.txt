@@ -1,0 +1,276 @@
+# Gestion des logs 
+
+# connaitre le système de log utilisé sur le système
+ls -d /etc/*syslog*
+
+############## ALL serveur syslog-ng sur debian ########
+
+-| installation
+apt-get install syslog-ng
+
+-| configuration
+/etc/syslog-ng/syslog-ng.conf
+/etc/syslog-ng/conf.d/my_conf.conf
+
+-| manage syslog-ng service
+/etc/init.d/syslog-ng start/stop/restart/reload/status
+/etc/init.d/syslog-ng start
+
+-| debuger configuration syslog-ng
+/sbin/syslog-ng (-F optionel)  (debian)
+ /usr/sbin/syslog-ng (alpine)
+
+############## ALL client ##############################
+
+-|############ Alpine
+==! on n'utilisera pas syslogd
+
+-| installation syslog-ng
+apk add syslog-ng
+
+-| manage service 
+rc-service syslog-ng start/stop/restart/reload/status
+
+-| debug config file
+/usr/sbin/syslog-ng
+
+
+-|########### CentOS
+
+-| installation 
+yum remove rsyslog
+sudo yum install wget
+
+# extra package for syslog-ng
+wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+rpm -Uvh epel-release-latest-8.noarch.rpm
+
+# Add the repo containing the latest unofficial build of syslog-ng
+cd /etc/yum.repos.d/
+wget https://copr.fedorainfracloud.org/coprs/czanik/syslog-ng324/repo/epel-7/czanik-syslog-ng324-epel-8.repo
+yum install syslog-ng --nobest
+systemctl enable syslog-ng
+systemctl start syslog-ng
+
+-| manage service 
+systemctl enable syslog-ng
+systemctl start syslog-ng
+
+-| debug config file
+/usr/sbin/syslog-ng
+/sbin/syslog-ng
+
+# splitter les différents remote log dans différents fichiers
+
+- dans destination utiliser log_prefix, program_override
+- utiliser des templates et filtrer par $HOST
+
+
+################## INSTALLATION SNMP ####################################
+
+################## CENTOS NMS
+
+-|# installation/configuration
+yum update
+yum install net-snmp net-snmp-utils
+
+-| installation mibs-downloader
+yum install net-snmp-libs
+
+-| check if snmp port is listen
+ss -alnp | grep snmp | grep 161
+
+-| check if snmp is ok
+snmpwalk -v2c -c test 172.18.10.10
+snmpwalk -v2c -c test 172.18.10.11
+snmpwalk -v2c -c test 172.18.10.12
+
+-| -| Management service
+systemctl start snmpd
+
+-| requête snmp
+
+-| CPU USAGE
+
+snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.11
+
+Load
+1 minute Load: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.10.1.3.1
+5 minute Load: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.10.1.3.2
+15 minute Load: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.10.1.3.3
+
+CPU
+percentage of user CPU time: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.11.9.0
+raw user cpu time: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.11.50.0
+percentages of system CPU time: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.11.10.0
+raw system cpu time: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.11.52.0
+percentages of idle CPU time: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.11.11.0
+raw idle cpu time: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.11.53.0
+raw nice cpu time: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.11.51.0
+
+-| MEM USAGE
+
+snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.4
+
+Total Swap Size: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.4.3.0
+Available Swap Space: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.4.4.0
+Total RAM in machine: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.4.5.0
+Total RAM used: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.4.6.0
+Total RAM Free: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.4.11.0
+Total RAM Shared: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.4.13.0
+Total RAM Buffered: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.4.14.0
+Total Cached Memory: snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021.4.15.0
+
+-| DISK USAGE
+
+snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.2.1.25.2.2
+snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.4.1.2021
+
+-| Liste des paquet 
+
+snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.2.1
+snmpwalk -v 2c -c test 172.18.10.11 .1.3.6.1.2.1.62
+
+
+
+################## DEBIAN SNMP CLIENT
+
+# configuration of SNMP version 2c
+
+-| installation
+apt update
+apt install snmpd snmp libsnmp-dev
+
+-| Configuration
+mv /etc/snmp/snmpd.conf /etc/snmp/snmpd.conf.bak
+touch /etc/snmp/snmpd.conf
+nano /etc/snmp/snmpd.conf
+
+#  Listen for connections from the local system only
+agentAddress  udp:127.0.0.1:161,udp:172.18.10.10:161
+# Read only Access from monitoring server (172.18.10.12
+ rocommunity test 172.18.10.12
+
+-| management service 
+systemctl restart snmpd
+
+-| check if snmp port is listen
+ss -alnp | grep snmp | grep 161
+
+-| check if snmp is ok
+snmpwalk -v2c -c test 172.18.10.10
+
+################################### OUTPUT #####################################################################
+iso.3.6.1.2.1.1.1.0 = STRING: "Linux tpdeb 4.19.0-6-amd64 #1 SMP Debian 4.19.67-2+deb10u2 (2019-11-11) x86_64"                                                
+iso.3.6.1.2.1.1.2.0 = OID: iso.3.6.1.4.1.8072.3.2.10                                                                                                          
+iso.3.6.1.2.1.1.3.0 = Timeticks: (5253) 0:00:52.53                                                                                                            
+iso.3.6.1.2.1.1.4.0 = STRING: "root"                                                                                                                          
+iso.3.6.1.2.1.1.5.0 = STRING: "tpdeb"                                                                                                                         
+iso.3.6.1.2.1.1.6.0 = STRING: "Unknown"                                                                                                                       
+iso.3.6.1.2.1.1.8.0 = Timeticks: (1) 0:00:00.01
+################################### OUTPUT #####################################################################
+
+################## Alpine SNMP CLIENT
+
+-| installation
+apk add net-snmp
+
+-| Configuration
+mv /etc/snmp/snmpd.conf /etc/snmp/snmpd.conf.bak
+touch /etc/snmp/snmpd.conf
+nano /etc/snmp/snmpd.conf
+
+#  Listen for connections from the local system only
+agentAddress  udp:127.0.0.1:161,udp:172.18.10.11:161
+# Read only Access from monitoring server (172.18.10.12
+ rocommunity test 172.18.10.12
+
+-| management service 
+/etc/init.d/snmpd restart
+
+-| check if snmp port is listen
+-| install iproute2 (pour avoir la commande ss et d'autres)
+apk add iproute2
+ss -alnp | grep snmp | grep 161
+
+-| check if snmp is ok
+snmpwalk -v2c -c test 172.18.10.11
+
+
+################################################ install NMS
+
+# install jdk
+yum install java-11-openjdk
+java -version
+export JAVA_HOME=/usr/lib/jvm/java-11
+
+# add yum repository & import GPG key
+yum -y install https://yum.opennms.org/repofiles/opennms-repo-stable-rhel7.noarch.rpm
+rpm --import https://yum.opennms.org/OPENNMS-GPG-KEY
+
+yum -y install opennms
+
+# fichier de configuration
+/opt/opennms
+
+# install postgresql
+postgresql-setup initdb
+systemctl start postgresql
+systemctl enable postgresql
+systemctl status postgresql
+
+-| create postgres account to let him access postgres shell
+
+# su - postgres
+
+-| create opennms db user and his db owned
+$ createuser -P opennms
+> mdp : 123
+$ createdb -O opennms opennms
+
+-| lui ajouter un mot de passe
+psql
+ALTER USER postgres WITH PASSWORD '123';
+CTRL+d poru quitter
+
+
+-| indiquer les crédentiels
+nano /var/lib/pgsql/data/pg_hba.conf
+==> remplacer indent par md5
+#####################################################################
+host    all             all             127.0.0.1/32            md5
+host    all             all             ::1/128                 md5
+#####################################################################
+
+> systemctl reload postgresql
+
+# indiquer les crédentials
+/opt/opennms/etc/opennms-datasources.xml 
+opennms 123
+postgres 123
+
+
+# intialize and start openNMSHOrizon
+/opt/opennms/bin/runjava -s
+
+# run installer to intialize db and detect lib persisted
+/opt/opennms/bin/install -dis
+
+# manage service
+# systemctl start opennms
+# systemctl enable opennms
+# systemctl status opennms
+
+# enable firewall
+# firewall-cmd --permanent --add-port=8980/tcp
+# firewall-cmd --reload
+
+# connect to http://localhost:2260/opennms
+admin
+admin
+
+
+
+
+
+

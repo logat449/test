@@ -1,0 +1,51 @@
+# Commandes de contrôle d'exécution
+
+# extraire informations 
+
+- adresse ip de la machine
+ip route get 1.2.3.4 | awk '{print $7}'
+hostname -I
+/sbin/ifconfig eth1 | grep 'inet addr:' | cut -d: -f2| cut -d' ' -f1
+
+- espace disque disponible
+df /dev/sda1 | tail -n 1 | awk '{print $4}'
+df --output=avail /dev/sda1 | tail -n 1 (output non compatible avec alpine)
+
+- charge cpu instantanée
+ps -o %cpu
+ps -o %cpu | awk 'NR==2 {$1}'
+ps -o %cpu | awk 'NR==3 {$1}'
+
+# Collecte distante
+
+ssh superv@172.18.10.11  < s.sh > /tmp/remote_info
+
+# script et execution toute les 5mn 
+
+#########################################################
+#!/bin/bash
+
+while true  
+do  
+
+ip=$(ip route get 1.2.3.4 | awk '{print $7}')
+fs=$(df /dev/sda1 | tail -n 1 | awk '{print $4}') 
+cl_1=$(ps -o %cpu | awk 'NR==2 {$1}')
+cl_2=$(ps -o %cpu | awk 'NR==3 {$1}')
+cl_f=$((cl_1 + cl_2))
+cl_ff=$((1+1))
+
+echo "# IP" $ip
+echo "# Free space" $fs
+echo "# CPU LOAD"  $cl_f
+
+sleep 300
+done
+
+#########################################################
+
+# execution distante du script
+
+ssh superv@172.18.10.11  < s.sh > /tmp/remote_info
+
+

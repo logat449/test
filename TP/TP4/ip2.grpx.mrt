@@ -1,0 +1,31 @@
+;
+; BIND data file for local loopback interface
+;
+$TTL	604800
+@	IN	SOA	ip2.grpx.mrt. root.ip2.grpx.mrt. (
+			     10		; Serial
+			 604800		; Refresh
+			  86400		; Retry
+			2419200		; Expire
+			 604800 )	; Negative Cache TTL
+@	IN	NS	ip2.grpx.mrt.
+ip2	IN	A	172.18.10.10
+ip1     IN      A       172.18.10.11
+ip3     IN      A       172.18.10.12
+box	IN	A	10.22.9.254
+
+; Nodes in domain
+grpxx1  IN      CNAME      ip1   
+grpxx2  IN      CNAME      ip2
+grpxx3  IN      CNAME      ip3
+
+rt1     IN      A      172.18.10.10
+rt2     IN      A      172.18.10.10
+rt3     IN      A      172.18.10.10
+
+;rt1.mrt IN      CNAME  rt1
+
+; on crée des CNAME pour avoir l'url correct rtx.mrt au lieu de rtx.grpx.mrt
+rt1.mrt     IN      CNAME      rt1
+rt2.mrt     IN      CNAME      rt2
+rt3.mrt     IN      CNAME      rt3

@@ -1,0 +1,424 @@
+# Configuration DNS maitre
+
+Alpine: ip1.grpx.mrt
+Debian: ip2.grpx.mrt
+Centos: ip3.grpx.mrt
+
+# Prérequis
+
+nano /etc/hostname
+nano /etc/resolv.conf
+ajouter en premier 
+nameserver 127.0.0.1
+search ip2.grpx.mrt
+nameserver 172.18.10.10
+
+################## DEBIAN SERVEUR DNS HYBRIDE MASTER+CACHE ############
+=> il servira de noeud DNS Maitre
+
+# installation
+apt-get install bind9
+apt-get install bind9-doc
+apt-get install dnsutils (debugger et test srv dns)
+
+-| droit sur les fichier de log 
+chown -R bind:root /var/log/named
+chmod -R 775 /var/log/named
+
+# configuration
+fichier de configuration principale de BIND9
+
+/etc/bind/named.conf
+/etc/bind/named.conf.options
+/etc/bind/named.conf.local
+
+
+# configuration en temps que serveur cache
+
+-| ajouter les serveurs DNS de votre prestataire internet
+
+nano /etc/bind/named.conf.options
+
+-| management du service
+systemctl restart bind9
+
+# configuration en temps que serveur maitre
+
+-| ajouter une zone et faire de BIND9 un serveur maitre
+
+nano named.conf.local
+
+###########################################################
+zone "grpx.mrt" {
+        type master;
+        file "/etc/bind/ip2.grpx.mrt"
+};
+###########################################################
+
+creer un le fichier de conf lié
+sudo cp /etc/bind/db.local /etc/bind/ip2.grpx.mrt
+
+nano /etc/bind/ip2.grpx.mrt
+###########################################################
+;
+; BIND data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     ip2.grpx.mrt. root.ip2.grpx.mrt. (
+                              3         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+@       IN      NS      ip2.grpx.mrt.
+ip2     IN      A       172.18.10.10
+ip1     IN      A       172.18.10.11
+ip3     IN      A       172.18.10.12
+box     IN      A       10.22.9.254
+;box2    IN      A       192.168.3.100
+###########################################################
+
+sudo service bind9 restart
+sudo service bind9 status
+
+-| configuration de recherche inversée
+
+nano /etc/bind/named.conf.local
+
+#################################
+zone "18.172.in-addr.arpa" {
+        type master;
+        notify no;
+        file "/etc/bind/db.172";
+};
+###################################
+
+
+-| création du fichier db.172
+
+sudo cp /etc/bind/db.127 /etc/bind/db.172
+nano /etc/bind/db.172
+
+###########################################################
+; BIND reverse data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     ip2.grpx.mrt root.ip2.grpx.mrt (
+                              1         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ip2.grpx.mrt.
+10.10   IN      PTR     ip2.grpx.mrt.
+11.10   IN      PTR     ip1.grpx.mrt.
+12.10   IN      PTR     ip3.grpx.mrt.
+###########################################################
+
+# debugger la zone 
+named-checkzone ip2.grpx.mrt /etc/bind/ip2.grpx.mrt
+named-checkzone grpx.mrt /etc/bind/ip2.grpx.mrt
+named-checkzone 18.172.in-addr.arpa /etc/bind/db.172
+
+# verifier si les entrée fonctionnent bien 
+
+# normale
+ping ip2.grpx.mrt
+ping ip1.grpx.mrt
+ping ip3.grpx.mrt
+
+# inversé
+host 172.18.10.10
+host 172.18.10.11
+host 172.18.10.12
+
+
+#### ALPINE
+nano /etc/resolv.conf
+nameserver 172.18.10.10
+
+# command devant être fonctionnelle
+ping ip2.grpx.mrt
+ping ip1.grpx.mrt
+ping ip3.grpx.mrt
+
+host 172.18.10.10
+host 172.18.10.11
+host 172.18.10.12
+
+##### CENTOS
+nameserver 172.18.10.10
+yum install bind-utils
+
+
+# command devant être fonctionnelle
+ping ip2.grpx.mrt
+ping ip1.grpx.mrt
+ping ip3.grpx.mrt
+
+host 172.18.10.10
+host 172.18.10.11
+host 172.18.10.12
+
+################ Rendre permanent les changements DNS ##################################
+
+# DEBIAN
+modifier le fichier /etc/dhcp/dhclient.conf
+
+décommenter ces lignes et renseigner le domaine et l'adresse de votre choix
+################################################
+#supersede domain-name "fugue.com home.vix.com";
+#prepend domain-name-servers 127.0.0.1;
+################################################
+
+décommenter ces lignes et renseigner le domaine et l'adresse de votre choix
+#########################################
+supersede domain-name "ip2.grpx.mrt";
+prepend domain-name-servers 172.18.10.10;
+#########################################
+
+# ALPINE
+creer le dossier udhcpc dans /etc/
+mkdir /etc/udhcpc
+creer le fichier udhcpc.conf
+nano udhcpc.conf
+################################
+RESOLV_CONF="no" # Prevents overwriting of /etc/resolv.conf
+###############################
+
+# CENTOS
+
+-| Method 1
+edit /etc/sysconfig/network-scripts/ifcfg-eth0 
+add PEERDNS=no
+
+-| Method 2
+edit /etc/sysconfig/network-scripts/ifcfg-eth0 
+add DNS=172.18.10.10
+
+################ ISNTALLATION APACHE2 ##################################
+
+# tester la confid de apache
+apachectl configtest
+
+######### DEBIAN #######################################################
+sudo apt-get update
+sudo apt-get install apache2
+=> lynx http://localhost doit fonctionner
+
+# empêcher apache de démarrer au boot
+sudo systemctl disable apache2 
+
+# Gestion du service apahce
+sudo systemctl start/stop/restart/reload apache2
+
+# Pour voir la version d'Apache utilisée :
+sudo apache2ctl -v
+
+# Pour tester l'ensemble de la configuration d'Apache :
+sudo apache2ctl -t
+
+# Pour tester la configuration des hôtes virtuels :
+sudo apache2ctl -t -D DUMP_VHOSTS
+
+# Pour voir les modules d'Apache chargés :
+sudo apache2ctl -M
+
+# consulter les logs d'apache 
+sudo tail /var/log/apache2/error.log -n 40
+
+# changer la page d'acceuil
+cd /var/www/html/index.html
+
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>TP DNS DEBIAN</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js"></script>
+</head>
+<body>
+  <p>nom machine: Debian</p>
+  <p>ip machine: 172.18.10.10</p>
+  <p>Serveur DNS Maitre+Cache</p>
+  <p>DNS record: ip2.grpx.mrt</p>
+</body>
+</html>
+
+# ajouter la directive ServerName (acèder par http://ip2.grpx.mrt)
+ServerName ip2.grpx.mrt
+
+################################################################
+<VirtualHost *:80>
+    ServerName grpxx1.grpx.mrt
+    ServerAlias www.grpxx1.grpx.mrt
+    ServerAdmin webmaster@grpx.mrt
+    DocumentRoot /var/www/grpxx1.grpx.mrt/html
+
+    <Directory /var/www/grpxx1.grpx.mrt/html>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+    </Directory>
+
+    ErrorLog ${APACHE_LOG_DIR}/example.com-error.log
+    CustomLog ${APACHE_LOG_DIR}/example.com-access.log combined
+</VirtualHost>
+################################################################
+
+# activer le bhsot 
+a2ensite grpxx1.grpx.mrt
+ln -s /etc/apache2/sites-available/grpxx1.grpx.mrt /etc/apache2/sites-enabled/
+
+
+
+######### ALPINE #######################################################
+
+# installation 
+apk add apache2
+
+# ajout au boot
+rc-update add apache2
+
+# service management
+rc-service apache2 restart
+=> lynx http://localhost doit fonctionner
+
+# configuration
+/etc/apache2/
+
+# page d'acceuil
+cd /var/www/localhost/htdocs/index.html
+
+# ajouter la directive ServerName (acèder par http://ip1.grpx.mrt)
+ServerName ip1.grpx.mrt
+
+######### CENTOS ######################################################
+
+# installation
+yum install httpd
+
+# fichier de config
+/etc/httpd/conf/httpd.conf
+
+# mettre en écoute le serveur apache
+nano /etc/httpd/conf/httpd.conf
+##############################
+#ServerName www.example.com:80
+ServerName 192.168.141.22:80
+##############################
+
+# mangement service
+service httpd start
+
+# add apache to boot
+chkconfig --levels 235 httpd on
+
+# page d'acceuil
+cd /var/www/html/index.html
+
+# ajouter la directive ServerName (acèder par http://ip3.grpx.mrt)
+ServerName ip3.grpx.mrt
+
+# autoriser accès apache sur le réseau
+firewall-cmd --add-service=http
+
+
+################ CONFIGURATION CENTOS SERVEUR ESCLAVE ###################
+
+-| configuration du serveur maitre(debian) pr permettre le transfert de zone 
+=> ajouter l'option allow-transferr dans les définitons des zones principales du fihcier /etc/bind/named.conf.local
+
+-| installation de bind9 sur centos
+yum install bind bind-utils
+
+-| management du service bind (named)
+systemctl start named
+
+-| fichier de configuration 
+/etc/named.conf
+
+| edition du ficheir de configuration /etc/named.conf
+################ ajouter à la fin ######################
+zone "grpx.mrt" {
+        type slave;
+        file "/var/named/dynamic/ip2.grpx.mrt";
+        masters { 172.18.10.10; };
+};
+
+zone "18.172.in-addr.arpa" {
+        type slave;
+        file "/var/named/dynamic/db.172";
+        masters { 172.18.10.10; };
+};
+################ ajouter à la fin ######################
+
+-| mettre en écoute IPV4 pour avoid le message network-unreachable-resolving/
+dans le fichier /etc/sysconfig/named
+ajouter OPTIONS="-4"
+
+
+######### VERIFICATION DES CONFIGURATIONS #########
+
+nano /etc/apache2/apache2.conf 
+nano /etc/bind9/bind
+
+chown -R superv: /var/www/grpxx1.grpx.mrt                                                   
+a2ensite grpxx1.grpx.mrt       
+sudo ln -s /etc/apache2/sites-available/grpxx2.grpx.mrt.conf /etc/apache2/sites-enabled                    
+nano /etc/bind/ip2.grpx.mrt
+cat /etc/resolv.conf
+
+apachectl configtest
+systemctl restart apache2 
+systemctl restart bind9
+systemctl status bind9
+systemctl status apache2
+rc-service apache2 status 
+service httpd status
+
+# command devant être fonctionnelle
+ping ip2.grpx.mrt
+ping ip1.grpx.mrt
+ping ip3.grpx.mrt
+
+host 172.18.10.10
+host 172.18.10.11
+host 172.18.10.12
+
+# Accès APACHE
+lynx http://172.18.10.10
+lynx http://172.18.10.11
+lynx http://172.18.10.12
+
+########### PRESENTATION PAR DES COMMANDES DU BON FONCTIONNEMENT ###############
+
+-| du serveur DNS maitre
+ping ip2.grpx.mrt
+ping ip1.grpx.mrt
+ping ip3.grpx.mrt
+
+host 172.18.10.10
+host 172.18.10.11
+host 172.18.10.12
+
+named-checkzone ip2.grpx.mrt /etc/bind/ip2.grpx.mrt
+named-checkzone grpx.mrt /etc/bind/ip2.grpx.mrt
+named-checkzone 18.172.in-addr.arpa /etc/bind/db.172
+
+-| de la fonctionnalité de cache du serveur maitre 
+dig www.google.fr (2 fois)
+on se rend compte que le temps de requête passe de 73msec à 0sec
+
+-| de la mise en place du serveur esclave
+cat /var/log/syslog | grep transfer (depuis le DNS Master MAchine)
+
+-| du bon fonctionnement du serveur esclave
+
+
+
+
+
+
+

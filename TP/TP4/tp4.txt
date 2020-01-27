@@ -1,0 +1,338 @@
+# Hôte virtuel et restriction des accès 
+
+
+# création des hotes virtuel sous debian 
+
+www.rt1.mrt: sera accessible depuis les machines centos, debian et www.rt2.mrt: sera accessible depuis les machines debian et alpine
+www.rt3.mrt: sera accessible depuis les machines debian et centos
+
+-| virtual host www.rt1.mrt
+allow 80/tcp
+ufw status
+systemctl restart apache2
+netstat -peanut (apache listen 80)
+
+-| creer dossier 
+mkdir -p /var/www/html/rt1.mrt/
+mkdir -p /var/www/html/rt2.mrt/
+mkdir -p /var/www/html/rt3.mrt/
+
+-| set permission
+chown -R superv:superv /var/www/html/rt1.mrt/
+chmod -R 755 /var/www/html/rt1.mrt/
+chown -R superv:superv /var/www/html/rt2.mrt/
+chmod -R 755 /var/www/html/rt2.mrt/
+chown -R superv:superv /var/www/html/rt3.mrt/
+chmod -R 755 /var/www/html/rt3.mrt/
+
+-| edition du fichier index.html
+nano /var/www/html/rt1.mrt/index.html
+
+-| création des 3 virtual host
+nano /etc/apache2/sites-available/rt1.mrt.conf
+#################################################
+<VirtualHost *:80>
+    ServerAdmin admin@rt1.mrt
+    ServerName rt1.mrt
+    ServerAlias www.rt1.mrt
+    DocumentRoot /var/www/html/rt1.mrt/
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+####################################################
+nano /etc/apache2/sites-available/rt2.mrt.conf
+#################################################
+<VirtualHost *:80>
+    ServerAdmin admin@rt2.mrt
+    ServerName rt2.mrt
+    ServerAlias www.rt2.mrt
+    DocumentRoot /var/www/html/rt2.mrt/
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+####################################################
+nano /etc/apache2/sites-available/rt3.mrt.conf
+#################################################
+<VirtualHost *:80>
+    ServerAdmin admin@rt3.mrt
+    ServerName rt3.mrt
+    ServerAlias www.rt3.mrt
+    DocumentRoot /var/www/html/rt3.mrt/
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+####################################################
+
+-| activation du virtual host 
+a2ensite rt1.mrt.conf
+a2ensite rt2.mrt.conf
+a2ensite rt3.mrt.conf
+
+-| désactivation du site par default
+a2dissite 000-default.conf
+
+-| ajout de l'entrée dans le fichier hosts
+127.0.0.1 rt1.mrt
+127.0.0.1 rt2.mrt
+127.0.0.1 rt3.mrt
+127.0.0.1 www.rt1.mrt
+127.0.0.1 www.rt2.mrt
+127.0.0.1 www.rt3.mrt
+
+systemctl restart apache2
+
+-| ajout de l'accès apache sur port 80 ds iptable
+ iptables -A INPUT -p tcp --dport 80 -j ACCEPT 
+
+-| on vérifie l'accès à tous ses sites avec lynx 
+lynx http://rt1.mrt / www.rt1.mrt
+lynx http://rt2.mrt / www.rt2.mrt
+lynx http://rt3.mrt / www.rt3.mrt
+
+-| Ajout des zones DNS sur le server DNS maitre
+
+voir fichier 
+
+
+# HTTPS
+
+Création du virtual host https://www.rt4.mrt avec certificat ssl autosigné
+
+-| installation apache2-ssl
+apk add apache2-ssl
+
+-| virtual host www.rt4.mrt
+allow 80/tcp
+ufw status
+systemctl restart apache2
+netstat -peanut (apache listen 80)
+
+-| creer dossier 
+mkdir -p /srv/http/rt4.mrt
+
+-| set permission
+chown -R superv:superv /srv/http/rt4.mrt
+chmod -R 755 /var/www/localhost/htdocs/rt4.mrt
+
+-| edition du fichier index.html
+nano /var/www/localhost/htdocs/rt4.mrt/index.html
+
+-| création du virtual host
+nano /etc/apache2/conf.d/httpd-vhosts.conf
+#################################################
+<VirtualHost *:80>
+    ServerAdmin admin@rt4.mrt
+    DocumentRoot "/srv/http/rt4.mrt"
+    ServerName rt4.mrt
+    ServerAlias www.rt4.mrt
+    ErrorLog "/var/log/apache2/rt4.mrt-error_log"
+    CustomLog "/var/log/apache2/rt4.mrt-access_log" common
+</VirtualHost>
+
+####################################################
+
+-| ajout de l'entrée dans le fichier hosts
+127.0.0.1 rt4.mrt
+127.0.0.1 www.rt4.mrt
+
+rc-service apache2 restart 
+
+-| on vérifie l'accès à tous ses sites avec lynx 
+lynx https://rt41.mrt / www.rt4.mrt
+
+-| création du certificat auto signé
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/apache-selfsigned.key -out /etc/ssl/certs/apache-selfsigned.crt
+openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout /etc/ssl/apache2/rt4/key.pem -out /etc/ssl/apache2/rt4cert.pem
+
+-| modification du vhost pour la configuration en https
+<VirtualHost *:443>
+<Location />
+    Order deny,allow
+    Deny from all
+    Allow from 127.0.0.1 172.18.10.10 172.18.10.11 172.18.10.12
+    </Location>
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/apache-selfsigned.crt
+    SSLCertificateKeyFile /etc/ssl/private/apache-selfsigned.key
+    ServerAdmin admin@rt4.mrt
+    DocumentRoot "/var/www/localhost/htdocs/rt4.mrt"
+    ServerName rt4.mrt
+    ServerAlias www.rt4.mrt
+    ErrorLog "/var/log/apache2/rt4.mrt-error_log"
+    CustomLog "/var/log/apache2/rt4.mrt-access_log" common
+</VirtualHost>
+
+-| vérification des accès 
+lynx https://rt4.mrt
+
+-| sy lynx pose problème
+se rendre dnas la config de lynx /etc/lynx/lynx.cfg
+décommenter ou ajouter la ligne
+ENABLE_LYNXRC:FORCE_SSL_PROMPT:ON
+
+-| ajout de l'accès apache sur port 80 ds iptable
+ iptables -A INPUT -p tcp --dport 80 -j ACCEPT 
+
+
+# CENTOS script SSI sur apache
+
+module echo et include doivent être chargés 
+cat /etc/httpd/conf.module.d
+
+-| ajouter include et SSI support
+editer le fichier /etc/httpd/conf/httpd.conf
+ajouter à partir de la ligne 136 sur le dossier /var/www/html
+######################
+# Further relax access to the default document root:
+<Directory "/var/www/html">
+    #
+    # Possible values for the Options directive are "None", "All",
+    # or any combination of:
+    #   Indexes Includes FollowSymLinks SymLinksifOwnerMatch ExecCGI MultiViews
+    #
+    # Note that "MultiViews" must be named *explicitly* --- "Options All"
+    # doesn't give it to you.
+    #
+    # The Options directive is both complicated and important.  Please see
+    # http://httpd.apache.org/docs/2.4/mod/core.html#options
+    # for more information.
+    #
+    # Options Indexes FollowSymLinks
+    # AJOUT du support include
+---->    Options Indexes FollowSymLinks Includes
+    #
+    # AllowOverride controls what directives may be placed in .htaccess files.
+    # It can be "All", "None", or any combination of the keywords:
+    #   Options FileInfo AuthConfig Limit
+    #
+    AllowOverride None
+---->    # AJOUT du support SSI
+        AddType text/html .shtml
+    AddOutputFilter INCLUDES .shtml
+    #
+    # Controls who can get stuff from this server.
+    #
+    Require all granted
+</Directory>
+
+######################## 
+
+
+-| exécuter les commandes 
+creer fichier t_ssi.shtml
+########## t_ssi.html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Script SSI</title>
+  <meta name="description" content="The HTML5 Herald">
+  <meta name="author" content="SitePoint">
+
+  <link rel="stylesheet" href="css/styles.css?v=1.0">
+
+</head>
+
+<body>
+  <script src="js/scripts.js"></script>
+  <p>Bienvenue sur la page du script SSI .shtml</p>
+  <p> Date local = <!--#echo var="DATE_LOCAL" --> </p>
+  <p> Adressse IP Machine: <!--#exec cmd="hostname -I | grep -Eo '^[^ ]+'" --></p><br/>
+  <p> Espace disque disponible: <!--#exec cmd="df -h | sed -n 2p | awk '{print $4}'" --></p>
+  <p> Espace disque disponible %: <!--#exec cmd="df -h | sed -n 2p | awk '{print 100-$5}'"-->%</p>
+  <p> Espace disque utilisé : <!--#exec cmd="df -h | sed -n 2p | awk '{print $3}'" --></p>
+  <p> Espace disque utilisé %: <!--#exec cmd="df -h | sed -n 2p | grep -oE '[0-9][0-9]%'" --></p>
+  <p> Charge CPU instantanée: <!--#exec cmd="top -b -n1 | grep 'Cpu(s)' | awk '{print $2 + $4}'" --></p>
+</body>
+</html>
+
+
+#########
+
+-| autoriser apache sur réseau local
+firewall-cmd --permanent --add-port=80/tcp
+firewall-cmd --permanent --add-port=443/tcp
+firewall-cmd --reload
+
+# forward debian call 8083 port to centos_ip:80 (not working)
+
+##example ########### ########### ########### ########### 
+# all the packets coming to 192.168.12.87 and port 80 will be forwarded to 192.168.12.77 port 80
+iptables -t nat -A PREROUTING -p tcp --dport 80 -j DNAT --to-destination 192.168.12.77:80
+iptables -t nat -A POSTROUTING -p tcp -d 192.168.12.77 --dport 80 -j SNAT --to-source 192.168.12.87
+###################### ########### ########### ########### ########### ########### ########### ########### 
+# all the packets coming to 172.18.10.10 and port 8083 will be forwarded to 172.18.10.12 port 80
+iptables -t nat -A PREROUTING -p tcp --dport 8083 -j DNAT --to-destination 172.18.10.12:80
+iptables -t nat -A POSTROUTING -p tcp -d 172.18.10.12 --dport 80 -j SNAT --to-source 172.18.10.10
+
+
+# Configurer un serveur webdav sur Debian
+
+-| il faut déjà un serveur apache insallé
+
+-| chargement des modules 
+a2enmod dav_fs dav
+a2enmod dav
+
+ou 
+editer le fichier de confi apache 
+LoadModule dav_module /usr/lib/apache2/modules/mod_dav.so
+LoadModule dav_fs_module /usr/lib/apache2/modules/mod_dav_fs.so
+
+-| création d'un virtual host pour webdav
+
+-| creer dossier 
+mkdir -p /home/superv/webdav
+
+-| set permission
+chown -R superv:superv /home/superv/webdav
+chmod -R 755 /home/superv/webdav
+
+-| création du virtual host
+nano /etc/apache2/sites-available/mwdav.mrt.conf
+#################################################
+<VirtualHost *:80>
+        ServerName mwdav.mrt
+        DocumentRoot /home/superv/webdav
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+        Alias /webdav /home/superv/webdav
+        <Location /webdav>
+            Options Indexes
+            Order allow,deny
+            allow from all
+            Dav on
+            AuthName "Private Access"
+            AuthType Basic
+            AuthUserFile /home/superv/all_config/.htpasswd
+            <Limit GET POST PROPFIND PUT DELETE PROPPATCH MKCOL COPY MOVE LOCK UNLOCK>
+                 Require user superv
+            </Limit>
+         </Location>
+</VirtualHost>
+####################################################
+
+-| activation du virtual host 
+a2ensite mwdav.mrt.conf
+
+-| ajout de l'entrée dans le fichier hosts
+127.0.0.1 mwdav.mrt
+127.0.0.1 www.mwdav.mrt
+
+-| on vérifie l'accès à tous ses sites avec lynx 
+lynx http://mwdav.mrt / www.mwdav.mrt
+
+-| création d'un fichier .htpasswd
+
+-| généraiton de l'utilisateur 'superv' 'test' avec
+mkdir /home/superv/all_config/.htpasswd
+htpasswd -c /home/superv/all_config/.htpasswd superv
+> test 
+> test
+
+-| installation du client webdav en ligne de commande
+apt-get install cadaver
+
+-| test de l'accès au serveur
+cadaver http://mwdav.mrt/webdav

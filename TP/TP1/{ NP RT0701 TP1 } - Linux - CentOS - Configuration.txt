@@ -1,0 +1,80 @@
+##################### ETAT ###########################
+local & internet ok & user, iptables rules & ssh ok 
+- besoin de lancer dhclient pour que internet fonction
+smbclient //172.18.10.10/ -U superv retournent VIDE mais ok
+#####################################################
+
+# user default
+root
+test08
+
+test
+test08
+
+nom_machine:tpcent
+
+172.18.10.12
+255.255.0.0
+172.18.10.254
+
+sudo systemctl start NetworkManager.service
+sudo systemctl stop NetworkManager.service
+dhclient
+
+
+# fichier de configuration réseau 
+
+/etc/sysconfig/network-scripts/ ...
+
+# utilisateur nouveau
+user: superv
+mdr: test
+
+# configuration ssh 
+
+####################################
+Port 22
+PermitRootLogin no
+PubkeyAuthentification yes
+PasswordAuthentication no
+UsePAM yes
+# utilisateurs non autorisés
+DenyUsers root, test
+# utilisateurs autorisé
+AllowUsers superv@172.18.10.10
+####################################
+
+-| gestion du service ssh
+service sshd start/stop/restart/status
+systemctl start/stop/restart/status sshd ou sshd.service
+
+-| création d'un fichier .conf dans le dossier /etc/ssh/ssh_config.d/my_conf.conf qui sera automatiquement inclus dans le fichier /etc/ssh/ssh_config
+
+
+# autoriser seulement les connexions ssh depuis la machine debian
+
+-| installation de iptables (aucun firewall par default)
+ipables est installé de base (nftables)
+
+-| insertion des régles suivantes
+iptables -A INPUT -p tcp --dport 22 --source 172.18.10.10 -j ACCEPT  //on accepte IP debien
+iptables-translate -A INPUT -p tcp --dport 22 --source 172.18.10.10 -j ACCEPT
+
+iptables -A INPUT -p tcp --dport 22 -j DROP // on rejette tous les autres
+iptables-translate -A INPUT -p tcp --dport 22 -j DROP
+
+-| restart firewall pour recharger la configuration
+systemctl reload iptables
+ou 
+systemctl restart iptables
+
+# installer samba-client
+dnf isntall samba samba-client
+yum install samba-client
+
+# test connexion serveur samba
+smbclient -L //172.18.10.10/ -U superv
+
+# connexion à un serveur samba
+smbclient //172.18.10.10/ -U superv
+smbclient //172.18.10.10/home/superv/superv_sshare -U superv

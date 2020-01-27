@@ -1,0 +1,47 @@
+//
+// Do any local configuration here
+//
+
+// Consider adding the 1918 zones here, if they are not used in your
+// organization
+//include "/etc/bind/zones.rfc1918";
+
+zone "grpx.mrt" {
+	type master;
+	file "/etc/bind/ip2.grpx.mrt";
+	// autoriser une lsite d'adresse ip autorisé à copier les informations de zones du serveur
+	allow-transfer { 172.18.10.12; };
+	// définie la lise des adresse ip autorisé à faire des requêtes à ce server
+	allow-query { any; 172.18.10.12; 172.18.10.11; };
+};
+zone "18.172.in-addr.arpa" {
+        type master;
+        notify no;
+        file "/etc/bind/db.172";
+	allow-transfer { 172.18.10.12; };
+	allow-query { any; 172.18.10.12; 172.18.10.11; };
+};
+zone "rt1.mrt" {
+	type master;
+	file "/etc/bind/rt1.mrt";
+	// autoriser une lsite d'adresse ip autorisé à copier les informations de zones du serveur
+	allow-transfer { 172.18.10.12; };
+	// définie la lise des adresse ip autorisé à faire des requêtes à ce server
+	allow-query { 172.18.10.10; 172.18.10.11; 172.18.10.12; };
+};
+zone "rt2.mrt" {
+	type master;
+	file "/etc/bind/rt2.mrt";
+	// autoriser une lsite d'adresse ip autorisé à copier les informations de zones du serveur
+	allow-transfer { 172.18.10.12; };
+	// définie la lise des adresse ip autorisé à faire des requêtes à ce server
+	allow-query { 172.18.10.10; 172.18.10.11; };
+};
+zone "rt3.mrt" {
+	type master;
+	file "/etc/bind/rt3.mrt";
+	// autoriser une lsite d'adresse ip autorisé à copier les informations de zones du serveur
+	allow-transfer { 172.18.10.12; };
+	// définie la lise des adresse ip autorisé à faire des requêtes à ce server
+	allow-query { 172.18.10.10; 172.18.10.12; };
+};

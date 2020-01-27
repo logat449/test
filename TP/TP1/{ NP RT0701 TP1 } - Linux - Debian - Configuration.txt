@@ -1,0 +1,163 @@
+
+##################### ETAT RT0701 ###########################
+local & internet ok & ssh alpine 
+smbclient //172.18.10.10/ -U superv retournent VIDE mais ok
+
+# Accès à l'invité
+bureau à distance > port 3390 sans authentification
+depuis le windows hote entrer adresse ip du windows hote puis le port 3390
+#############################################################
+
+# user default
+root
+test08
+
+test
+test08
+
+nom_machine:tpdeb
+
+ip addr
+/etc/network/interfaces
+
+# configurer carte réseau locale
+allow-hotplug enp0s3
+iface enp0s3 inet static
+address 172.18.10.10
+netmask 255.255.0.0
+gateway 172.18.10.254
+
+# ajouter une interface réseau en NAT
+configurer le nouvelle adaptateur détecté automatiquement enp0s8
+allow-hotplug enp0s8
+auto enp0s8
+iface enp0s8 inet dhcp
+
+# appliquer les changements de réseau et tester la connectivité et récupérer/renouveller l'adresse IP par dhcp
+systemctl restart networking
+
+# activer/désactiver un interface
+
+/sbin/ifup enp0s3
+/sbin/ifdown enp0s3
+
+# rebooter la machine
+/sbin/reboot
+
+# résoudre les problèmes de connexion internet
+champs gateway donne la route par default pour tous les interfaces
+==> supprimer le gateway dans config interface
+==> ip route pour voir la route par default
+
+# utilisateur nouveau
+user: superv
+mdr: test
+
+# donner les droits de reboot à un utilisateur par l'intermédiaire de la commande sudo
+
+sudo apt-get install sudo
+nano /etc/sudoers
+
+###############################################################################
+# Allow user superv & test to execute reboot & poweroff
+superv ALL=NOPASSWD: /usr/bin/systemctl reboot,  /usr/bin/systemctl poweroff 
+###############################################################################
+
+# configuration ssh
+
+Virtual Box for host access
+from 2223 host and 22 guest
+
+/etc/ssh/sshd_config
+Port 22
+PermitRootLogin no
+PasswordAuthentication yes
+UsePAM yes
+X11Forwarding yes
+PrintMotd no (où le message du jour à afficher ou non)
+#utilisateurs autorisé
+AllowUsers superv
+
+-| on s'assure ou on met le service ssh à démarré au boot
+
+-| on vérifie le statut du service sshd
+sudo service ssh status
+
+-| gestion du service sshd
+sudo service ssh restart
+
+--> refuser les connexions en temps que root
+==> elle ne fonctionne pas de base
+
+--> autoriser seulement l'utilisateur superv
+==> il est déjà le seul autorisé
+
+--> autoriser seulement la machine debian
+==> A FAIRE
+
+# Configuration sshd_config
+
+####################################
+port 22
+PermitRootLogin no
+PasswordAuthentication yes
+UsePAM yes
+X11Forwarding yes
+PrintMotd no
+DenyUsers root, test
+AllowUsers superv
+####################################
+
+# génération d'une clé RSA pour l'authentification à la machine centOS
+
+-| pour le root(inutile)
+ssh-keygen -t rsa -b 4096 -C "tp1@tp0701.com"
+passphrase: test_rsa
+fichier identification dans lequel sera sauvé la clé: /root/.ssh/id_rsa
+fichier public key où sauvegardée: /root/.ssh/id_rsa.pub
+
+-| pour l'utilisateur superv
+ssh-keygen -t rsa -b 4096 -C "tp1@tp0701.com"
+passphrase: test_rsa
+fichier identification dans lequel sera sauvé la clé: /home/superv/.ssh/id_rsa
+fichier public key où sauvegardée: /home/superv/.ssh/id_rsa.pub
+key fingerprint: SHA256:sPFvKnlaazmyYX5Qr6heJIWxWndtp5RCow9h5EXB5v0 tp1@tp0701.com
+
+-| envoie de la clé au serveur ssh centos
+ssh-copy-id -i ~/.ssh/id_rsa.pub -p 22 superv@172.18.10.12
+
+# partage de fichier et installation de samba
+
+apt-get update
+apt-get install samba
+
+# création de l'utilisateur pour samba
+smbpasswd -a superv
+	superv
+	test
+
+# redémarrer le service samba
+/etc/init.d/smbd restart
+
+# configuration de samba /etc/samba/smb.conf
+
+# superv share
+[MyShare]
+  comment = dossier partagé de l'utilsiateur superv
+  path = /home/superv/superv_sshare
+  read only = no
+  guest ok = yes
+
+cd /home/superv/
+mkdir superv_sshare
+chmod 0777 superv_sshare
+
+# tester la configuration de samna
+testparm /etc/samba/smb.conf
+
+# test connexion serveur samba
+smbclient -L //172.18.10.10/ -U superv
+
+# connexion à un serveur samba
+smbclient //172.18.10.10/ -U superv
+smbclient //172.18.10.10/home/superv/superv_sshare -U superv

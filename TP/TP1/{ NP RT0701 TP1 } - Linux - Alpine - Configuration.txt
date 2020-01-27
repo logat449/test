@@ -1,0 +1,127 @@
+##################### ETAT RT0701 ###########################
+local & internet ok & user, iptables rules & ssh ok 
+smbclient //172.18.10.10/ -U superv retournent VIDE mais ok
+
+# Accès à l'invité
+bureau à distance > port 3391 sans authentification
+depuis le windows hote entrer adresse ip du windows hote puis le port 3391
+#############################################################
+
+# user default
+root
+test08
+
+# clavier en azerty
+setup-keymap fr fr-azerty
+
+# changer le nom de machine
+echo "tpalp" > /etc/hostname
+hostname -F /etc/hostname
+
+# setup-alpine
+
+choose sda disk > sys
+
+# ejecter l'ISO et indiquer que le disque est le premier device à booter dnas les config de vbox
+
+# configurer l'interface eth0 (ip fixe)
+ 
+> setup-interfaces
+
+########################################
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+		address 172.18.10.11
+		mask 255.255.0.0
+		gateway 172.18.10.254
+
+########################################
+
+# appliquer les changements de réseau et tester la connectivité
+/etc/init.d/networking restart
+=> le réseau local fonctionne toujours mais la connexion internet ne marche alors que 
+l'adresse IP est bien reçue
+
+# connaitre les configurations réseaux
+ip addr
+/sbin/ifconfig
+
+# lancer le dhcp
+udhcpc
+
+# utilisateur ssh
+user: superv
+mdr: test
+
+# accorder les droits reboot à l'user superv
+apk add sudo
+vi /etc/sudoers
+
+###############################################################################
+# Allow user superv to execute reboot & poweroff
+superv ALL=NOPASSWD: /sbin/systemctl reboot,  /sbin/systemctl poweroff 
+###############################################################################
+
+# configuration ssh
+
+Virtual Box for host access
+from 2222 host and 22 guest
+
+/etc/ssh/sshd_config
+
+####################################
+Port 22
+PermitRootLogin no
+PasswordAuthentication yes
+# utilisateurs non autorisés
+DenyUsers root, test
+# utilisateurs autorisé
+AllowUsers superv@172.18.10.10
+####################################
+
+-| on s'assure ou on met le service ssh à démarré au boot
+rc-update add sshd
+
+-| on vérifie le statut du service sshd
+rc-status
+/etc/init.d/sshd status
+
+-| gestion du service sshd
+/etc/init.d/sshd start/stop/restart
+
+--> refuser les connexions en temps que root
+==> elle ne fonctionne pas de base
+
+--> autoriser seulement l'utilisateur superv
+==> il est déjà le seul autorisé
+
+--> autoriser seulement la machine debian
+==> A FAIRE
+
+# autoriser seulement les connexions ssh depuis la machine debian
+
+-| installation de iptables (aucun firewall par default)
+apk install iptables
+
+-| set iptables start on reboot
+rc-update add iptables
+
+-| insertion des régles suivantes
+iptables -A INPUT -p tcp --dport 22 --source 172.18.10.10 -j ACCEPT  //on accepte IP debien
+iptables -A INPUT -p tcp --dport 22 -j DROP // on rejette tous les autres
+
+-| write firewall to disk
+/etc/init.d/iptables save
+
+-| restart firewall 
+/etc/init.d/iptables restart
+
+# test connexion serveur samba
+smbclient -L //172.18.10.10/ -U superv
+
+# connexion à un serveur samba
+smbclient //172.18.10.10/ -U superv
+smbclient //172.18.10.10/home/superv/superv_sshare -U superv
