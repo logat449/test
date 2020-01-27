@@ -1,0 +1,234 @@
+# Clone de unbuntu server TP1
+
+user: test
+mdp: test
+
+1. carte réseau 
+Réseau privé hote
+192.168.59.3/24
+Plage d'adresse distribué: 200 à 250
+
+2. carte ré1seau 
+Réseau NAT
+DHCP
+
+# Configurer un 2eme interface
+cd /etc/netplan/
+sudo mv 50-cloud-init.yaml 51-cloud-init.yaml
+sudo nano 51-cloud-init.yaml
+
+##############################
+network:
+    ethernets:
+         enp0s8:
+             dhcp: true
+    version: 2         
+##############################   
+
+# installation de LXC
+
+sudo apt-get install lxc
+dpkg -l bridge-utils
+
+! ATTENTION à bien utiliser le sudo sinon les commandes ne marcheront pas 
+
+# fichier de config par default de lxc
+cat /etc/lxc/default.conf
+
+# création d'un invité ubuntu 
+créer un container avec 
+pour nom 'container_xenial', 
+pour la distribution Ubuntu
+sous la release Xenial, 
+ayant une architecture amd64 
+
+sudo lxc-create -t download -n u18 -- -d ubuntu -r bionic -a amd64 (ubuntu 18.04)
+
+# lister les containers
+sudo lxc-ls
+
+# list all the containers, listing one per line along with its name, state, ipv4 and ipv6 addresses. 
+sudo lxc-ls --fancy
+
+# avoir un shell root directement sur un container arrêté
+sudo lxc exec u18 -- /bin/bash
+
+# gestion d'un container
+sudo lxc-start -n u18
+sudo lxc-start/stop/delete -n name
+
+default login/pass
+  username: ubuntu
+  password: ubuntu
+  !== NON çà ne marche pas, il faut créer les users et changer le mdp root !!!!
+
+# lancer une commande en root directement sur le container sans authentification
+sudo lxc-attach -n u18 -- commande_shell
+ou
+lxc-execute
+
+# création d'un utilisateur sur le container
+sudo lxc-attach -n u18 -- adduser test
+
+# modifier le mot de passe root
+sudo lxc-attach -n u18 -- passwd root
+
+# Accès au container
+
+-|soit avec la lxc console (le root ne peut pas se logger)
+sudo lxc-console -n u18
+
+-| quitter le lxc console
+CTRL+A Q
+
+-| soit par ssh
+
+# Chemin absolue du container
+/var/lib/lxc/container_xenial/rootfs
+
+# fichier de configuration du container
+/var/lib/lxc/container_xenial/config
+
+# destruction du container
+sudo lxc-stop -n container_xenial
+sudo lxc-destroy -n container_xenial
+
+# Récupérer les informations du conteneur
+sudo lxc-ls --fancy
+sudo lxc-info -n u18
+
+# avoir les infos d'un container
+lxc-info -n nom_container
+sudo cat /var/lib/lxc/u18/config  
+
+-| processus sur l'hôte
+cd /sys/fs/cgroup/memory/lxc && for i in $(echo */); do echo $i && cat $i/cgroup.procs; done
+
+# Vérifiez l’accès et les droits dans l’invité;
+
+# État du filesystem de l’invité, que remarquez-vous (cf item 3.b)
+
+# Processus en exécution sur l’invité que remarquez-vous(cf question 3.d)
+il y a pas de commande clear
+
+# Limitations de ressources en ligne de commande
+
+# Limitez la mémoire(256mo) et son cpu(50%)d'un container en execution
+
+il faut utiliser lxc-config et assigner un cgroup ?
+
+-| vérifier l'application de la valeur
+sudo cat /sys/fs/cgroup/cpu/lxc/u18/cpu.cfs_period_us
+
+-| verifier dans le container l'utilisation 
+cat /proc/loadavg
+
+# Mettre le réseau en mode physique 
+
+-| on modifie le fichier de configuration du container 
+sudo /var/lib/lxc/nom_container/config
+
+###########################################
+│# Network configuration Physique enps03
+lxc.net.0.type = phys
+lxc.net.0.link = enp0s3
+lxc.net.0.flags = up
+lxc.net.0.hwaddr = 00:18:4g:9c:1d:79
+###########################################
+
+sur l'hôte rien n'a changé mise à part que l'interface à complétement disparu 
+l'invité récupère bien la configuration de l'interface, moyennant un dhclient elle récupère bien l'adresse ip comme si l'hôte avait l'interface
+
+# Créer un bridge
+-| création de l'interface bridge
+==! on vérifie avant tout que l'interface n'existe pas déjà avec ifconfig
+sinon on le crée
+brctl addbr lxcbr1
+-| on modifie la configuation netplan.yaml de l'interface de l'hote
+-| on modifie le fichier de configuration du container 
+sudo /var/lib/lxc/nom_container/config
+
+###########################################
+│# Network configuration Bridge enps03
+lxc.net.0.type = veth
+lxc.net.0.link = lxcbr1
+lxc.net.0.flags = up
+lxc.net.0.hwaddr = 00:17:4e:9c:1d:57
+###########################################
+
+==> le réseau bridge existe déjà et la VM a déjà accès à internet et donc au réseau
+
+# installation d'un package dans le conteneur (apache)
+
+sudo apt-get update
+sudo apt-get install apache2
+=> lynx http://localhost doit fonctionner
+
+-| configuration de apache pour changer le port d'écoute en 51235
+vi /etc/apache2/port.conf
+
+sudo systemctl stop apache2
+sudo systemctl start apache2
+
+-| depuis l'hôte linux(virtuel)
+depuis l'ip du conteneur disponible par sudo lxc-ls --fancy
+> lynx http://10.0.4.222:51235 
+
+-| depuis l'hôte hôte de la VM(windows dans mon cas)
+--> sur virtualbox
+on forward le port 2252 de l'hote vers le port 51235 de la VM
+
+--> sur la VM 
+=> on forward le port 51235 de l'hote VM ubuntu vers l'ip du container et son port 51235 avec la règle iptable suivante
+sudo iptables -t nat -A PREROUTING -p tcp --dport 51235 -j DNAT --to 10.0.4.222:51235
+
+==> on accède au serveur ubuntu avec l'ip 192.168.3.107:2252 (ip de la machine hote qui a virtualbox d'installé)
+
+# Limitation de la RAM et du cpu dès son démarrage
+
+# RAM
+-| connaitre la mémoire max d'un container
+sudo lxc-execute u18 -- /bin/bash
+free -h (pour verifier la mémoire que le container a)
+-| on consulte la mémoire max utilisé en byte
+sudo cat /sys/fs/cgroup/memory/lxc/u18/memory.max_usage_in_bytes
+
+-| on modifie le fichier de configuration du container pour indiquer la memory.max_usage_in_bytes
+sudo nano /var/lib/lxc/u18/config
+###########################################
+# Memory limits
+lxc.cgroup.memory.limit_in_bytes = 250000000
+###########################################
+ 
+# CPU
+-| on vérifie que la mémoire limits a bien été enregistré dans la config
+sudo cat /sys/fs/cgroup/memory/lxc/u18/memory.max_usage_in_bytes
+
+# Limtatez l'utilisation du processeur à 50% de ses capacités
+
+-| connaitre le cpu max d'un container
+sudo lxc-execute u18 -- /bin/bash
+
+sudo ls /sys/fs/cgroup/cpu/lxc/u18 
+
+-| Fichiers permettant de limiter l'utilisation du cpu(bande passante du cpu)
+sudo cat /sys/fs/cgroup/cpu/lxc/u18/cpu.cfs_period_us
+sudo cat /sys/fs/cgroup/cpu/lxc/u18/cpu.cfs_quota_us
+
+L'ensemble de ces fichiers sont fait pour, les autres permettent de limiter les core du CPU utilisé et non la bande passante
+
+-| estimer la bande passante de notre cpu 
+(# of cpus on the host) * (cpu.cfs_period_us) * (.25) so 40 * 100000 * .25 = 1000000 
+cat /proc/loadavg
+
+
+-| editer la configuration 
+sudo nano /var/lib/lxc/u18/config 
+###########################################
+# CPU LIMITS 50%
+lxc.cgroup.cpu.cfs_period_us = 5000
+#lxc.cgroup.cpu.cfs_quota_us = 1
+#limits.cpu.allowance = 50%
+###########################################
+
+

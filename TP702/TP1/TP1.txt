@@ -1,0 +1,218 @@
+# user 
+test
+test
+
+# installer les guest additions
+apt-get update
+apt-get upgrade
+reboot
+> par la gui de vbox insérer le disque
+> sudo mount /dev/cdrom /mnt (pour monter le cdrom)
+> cd /mnt
+> sudo apt-get install -y dkms build-essential linux-headers-generic linux-headers-$(uname -r) (installer toutes les dépendances nécessaires pour l'installation)
+> sudo su (switch root)
+> ./VBoxLinuxAdditions.run
+> reboot
+
+# Donner les adresses ip des différentes machines(hote et invité)
+
+hôte: 10.22.9.146
+invité: 10.0.2.15
+
+# tester accès entre hote et invité 
+
+invité to host -> ping ok
+host to invité -> ping no (timeout)
+
+
+# installer un serveur web
+apt-get install nginx
+sudo service nginx status
+sudo /etc/init.d/nginx start
+config file to /etc/nginx/nginx.conf
+
+# configurer un répertoire partagé entre l'hote et l'invité
+> le répertoire sera accessible par un ensemble d'utilisateurs, et pas seulement par un accès root
+
+configure par la gui de vbox un dossier partagé permanent
+> chemin du dossier : chemin du dossier sur windows
+> nom du dossier 'wsf'
+> montage auto enable
+> point de montage /medi/wsf
+> configuration permanente enable
+
+# sudo mkdir /media/wsf
+# sudo mount -t vboxsf wsf /media/wsf (active le partage à faire à chaque démarrage)
+
+# Duplication de machine
+
+> taille de la VM originel: 3.22GO
+
+-| clone complet de la machine
+	IP: ip -4 -o addr show
+	nom machine : hostname
+	nom user : who
+	version noyau: uname -a
+
+==> taille du full clone = 3.22GO = celle de VM originel à quelques octets près
+
+-| clone lié de la machine
+> taille du linked clone = 2mo
+
+==> taille nettement dfférente
+
+
+# Etudes des modes réseau 
+
+> forward de port depuis l'interface virtual box dans les configurations de l'adaptateur réseau en renseignant les IP pas localhost
+> tester si port est accessible avec: nmap -p port IP
+nmap -p 8080 10.0.2.15
+############
+Nmap scan report for 10.0.2.15
+Host is up (0.0020s latency).
+
+PORT     STATE    SERVICE
+8080/tcp filtered http-proxy
+
+Nmap done: 1 IP address (1 host up) scanned in 54.60 seconds
+#######################
+
+
+# configuration réseau DHCP
+
+- ip de la machine: 192.168.56.101/24
+
+- pour configurer le DHCP > fichier > gestionnaire de réseau hôte
+
+-| Réseau privé hote
+host to guest : ping ok
+guest to host : ping no
+
+-| NAT
+guest to host  -> ping ok
+host to gues -> ping no (timeout)
+
+- | Bridge (réseau de pont)
+host to guest : ping ok
+guest to host : ping no
+
+
+# Montage réseau
+
+eth NAT : 10.0.2.15/24
+
+eth RPHOTE: 192.168.0.4/24
+
+# Accès à l'invité
+
+-|1 depuis l'hyperviseur
+
+PARAM VM > affichage >
+bureau à distance > port 5049 sans authentification
+
+depuis le windows hote entrer adresse ip du windows hote puis le port 5049
+
+-|2 depuis ssh
+
+sur le guest ubuntu
+ssh -V (vérifier ce qui est installé)
+sudo systemctl stgatut ssh
+sudo systemctl start ssh
+configurer /etc/ssh/sshd_config
+
+pour se connecter depuis le post windows
+-> configuraiton de la VM 
+hote : no ip port 2222
+guest: ip NAT 22
+-> avec WINSCP se connecté sur localhost:2222 puis rentrer le login et pass de l'user linux
+-> avec putty on rentre les même information
+-> en ligne de commande avec
+ssh user@localhost -p 2222
+
+
+# Démarrage sans console
+
+-| configurer l'interface permettant ld'accès à la machine avec une ip fixe, puis arrêtez la machine virtuelle
+
+sudo nano /etc/netplan/50-yaml
+
+############################
+#dhcp4: true
+addresses: [10.0.2.15/24]
+#gateway4: 10.145.31.254
+#nameservers:
+#addresses: [8.8.4.4,8.8.8.8]
+
+############################
+
+sudo netplan apply
+sudo netplan --debug apply
+
+-| démarrer une ligne de commande depuis la machine virtuelle
+
+-ajouter le dossier oracle\virtualbox au path de windows dans les var d'environnements
+
+
+> VboxManage list vms
+> VBoxManage startvm "RT0702_ubuntu_server" --type headless
+
+# If you need to pause that VM, issue the command:
+VBoxManage controlvm "RT0702_ubuntu_server" pause --type headless
+
+# To restart that paused VM, issue the command:
+VBoxManage controlvm "RT0702_ubuntu_server" resume --type headless
+
+# To shut down the VM, issue the command:
+VBoxManage controlvm "RT0702_ubuntu_server" poweroff --type headless
+
+# configuration d'un repertoire partagée accessible au serveur web
+sudo mkdir -p /var/www/example.com/html
+
+use the $USER environmental variable to assign ownership to the account that we are currently signed in(allow us to easily create or edit the content in this directory)
+sudo chown -R $USER:$USER /var/www/example.com/html
+
+# permissions
+sudo chmod -R 755 /var/www
+
+# create the server block file 
+sudo cp /etc/nginx/sites-available/default /etc/nginx/sites-available/tsite
+sudo nano /etc/nginx/sites-available/tsite
+
+###############################
+server {
+        listen 80;
+        listen [::]:80;
+
+        root /var/www/tsite/html;
+        index index.html index.htm index.nginx-debian.html t tsite.html;
+
+        server_name tsite www.tsite;
+
+        location / {
+                try_files $uri $uri/ =404;
+        }
+}
+#######################################
+
+
+# enable the server block & restart nginx
+sudo ln -s /etc/nginx/sites-available/tsite /etc/nginx/sites-enabled/
+
+# verifier que la config nginx est ok
+sudo nginx -t
+
+# restart nginx pour appliquer les changments
+sudo systemctl restart nginx
+
+# modifier le fichier host
+sudo nanno /etc/host
+10.0.2.15 tsite
+
+# accéder au site depuis l'invité
+lynx http://tsite
+
+# accéder au site depuis l'hôte
+http://10.145.6.60:8080/tsite
+
+# arrêt de la machine virtuelle 
+VBoxManage controlvm "RT0702_ubuntu_server" poweroff --type headless
