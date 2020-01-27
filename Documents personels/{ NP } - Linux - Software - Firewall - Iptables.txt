@@ -1,0 +1,414 @@
+################ NOUVELLE VERSION DE LINUX #######################
+ubuntu: ufw
+nftable
+iptable-translate pour ajouter des règles iptables à nftable
+
+###################################################################
+
+################ ANCIENNE VERSION DE LINUX #######################
+
+-| installation de iptables (aucun firewall par default)
+apk install iptables (alpine)
+
+# Lister les règles
+sudo iptables -S
+sudo iptables -S tcp
+sudo iptables -L INPUTs
+sudo iptables -L --line-numbers // liste les régles par numéro
+sudo iptables -L -n -t nat --line-numbers
+
+# Lister les régles iptables prérouting et NAT
+sudo iptables -L -n -t nat
+
+# Supprimer une régle
+iptables -D INPUT/ACCEPT/DROP num_line
+sudo iptables -t nat -D PREROUTING num_line
+
+-| set iptables start on reboot
+rc-update add iptables
+
+-| write firewall to disk
+/etc/init.d/iptables save
+
+-| restart firewall 
+/etc/init.d/iptables restart
+
+-| flush les règles iptables (sans reboot)
+iptables -F
+iptables -X
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -P FORWARD ACCEPT
+
+iptables-restore < /etc/iptables.secu.rules
+
+service iptables start
+
+###################################################################
+
+-| garder iptable et ses règles après redémarrage 
+sudo apt install iptables-persistent netfilter-persistent
+
+    netfilter-persistent save
+    netfilter-persistent start
+    iptables-save  > /etc/iptables/rules.v4
+    ip6tables-save > /etc/iptables/rules.v6
+    iptables-restore  < /etc/iptables/rules.v4
+    ip6tables-restore < /etc/iptables/rules.v6
+    systemctl stop    netfilter-persistent
+    systemctl start   netfilter-persistent
+    systemctl restart netfilter-persistent
+
+
+########################################################################
+DEBIAN SECURISATION
+FERMER PORT ET OUVRIR QUE CEUX QUE L'ONT UTILISE    
+########################################################################
+
+-| on récupère les ports des services que l'ont utilise
+nmap -sTU -O 172.18.10.10
+
+################## OUTPUT #############################
+PORT     STATE         SERVICE
+--() 22/tcp   open          ssh
+--() 53/tcp   open          domain
+--() 80/tcp   open          http
+--|  139/tcp  open          netbios-ssn
+--|  445/tcp  open          microsoft-ds
+--|  8081/tcp open          blackice-icecap
+--|  8082/tcp open          blackice-alerts
+--|  8083/tcp open          us-srv
+--() 53/udp   open          domain
+--() 68/udp   open|filtered dhcpc
+--|137/udp  open          netbios-ns
+--|138/udp  open|filtered netbios-dgm
+--() 161/udp  open          snmp
+--|1000/udp open|filtered ock
+--|1001/udp open|filtered unknown
+######################################################
+
+-| on récupère la configuration du firewall
+iptables -L
+
+-| on crée un nouveau fichier de règles
+nano /etc/iptables.secu.rules
+
+############## BASE RULES ############################
+*filter
+
+# Allows all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
+-A INPUT -i lo -j ACCEPT
+-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+
+# Accepts all established inbound connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allows all outbound traffic
+# You could modify this to only allow certain traffic
+-A OUTPUT -j ACCEPT
+
+# Allows HTTP and HTTPS connections from anywhere (the normal ports for websites)
+-A INPUT -p tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp --dport 443 -j ACCEPT
+
+# Allows SSH connections 
+# The --dport number is the same as in /etc/ssh/sshd_config
+-A INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
+
+# Now you should read up on iptables rules and consider whether ssh access 
+# for everyone is really desired. Most likely you will only allow access from certain IPs.
+
+# Allow ping
+#  note that blocking other types of icmp packets is considered a bad idea by some
+#  remove -m icmp --icmp-type 8 from this line to allow all kinds of icmp:
+#  https://security.stackexchange.com/questions/22711
+-A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+
+# log iptables denied calls (access via 'dmesg' command)
+-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied: " --log-level 7
+
+# Reject all other inbound - default deny unless explicitly allowed policy:
+-A INPUT -j REJECT
+-A FORWARD -j REJECT
+
+COMMIT
+##########################################################
+
+################### MY RULES #################################################
+*filter
+
+# Allows all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
+-A INPUT -i lo -j ACCEPT
+-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+
+# Accepts all established inbound connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allows all outbound traffic
+# You could modify this to only allow certain traffic
+-A OUTPUT -j ACCEPT
+
+# Allows SSH connections
+# The --dport number is the same as in /etc/ssh/sshd_config
+-A INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
+
+# Allows DNS from anywhere
+-A INPUT -p tcp --dport 53 -j ACCEPT
+-A INPUT -p udp --dport 53 -j ACCEPT
+
+# Allows HTTP and HTTPS connections from anywhere (the normal ports for websites)
+-A INPUT -p tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp --dport 443 -j ACCEPT
+
+# Allow DHCP from anywhere
+-A INPUT -p udp --dport 68 -j ACCEPT
+
+# Allow SNMP from anywhere
+-A INPUT -p udp -dport 161 -j ACCEPT
+
+# Now you should read up on iptables rules and consider whether ssh access
+# for everyone is really desired. Most likely you will only allow access from certain IPs.
+
+# Allow ping
+#  note that blocking other types of icmp packets is considered a bad idea by some
+#  remove -m icmp --icmp-type 8 from this line to allow all kinds of icmp:
+#  https://security.stackexchange.com/questions/22711
+-A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+
+# log iptables denied calls (access via 'dmesg' command)
+-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied: " --log-level 7
+
+# Reject all other inbound - default deny unless explicitly allowed policy:
+-A INPUT -j REJECT
+-A FORWARD -j REJECT
+
+COMMIT
+#############################################################################
+
+-| on applique ce fichier de règle pour la session seulement
+iptables-restore < /etc/iptables.secu.rules
+
+-| appliquer les changements de façon permanente
+
+--| on sauve les règles dans le fichier maitre de iptables
+iptables-save > /etc/iptables.up.rules
+
+--| on s'assure que les nouvelles règles soit démarrés au reboot en créant un nouveau fichier
+nano /etc/network/if-pre-up.d/iptables
+###############################################
+#!/bin/sh
+/sbin/iptables-restore < /etc/iptables.up.rules
+###############################################
+
+--| on rend le script éxécutable
+chmod +x /etc/network/if-pre-up.d/iptables
+ou 
+on peux utilier le paquet iptables-persistent
+apt-get install iptables-persistent
+iptables-save > /etc/iptables/rules.v4
+ip6tables-save > /etc/iptables/rules.v6
+
+
+
+########################################################################
+ALPINE SECURISATION
+FERMER PORT ET OUVRIR QUE CEUX QUE L'ONT UTILISE    
+########################################################################
+
+-| on récupère les ports des services que l'ont utilise
+nmap -sTU -O 172.18.10.11
+
+################## OUTPUT #############################
+PORT     STATE         SERVICE
+--() 22/tcp  filtered ssh
+--() 80/tcp  open     http
+--() 443/tcp open     https
+######################################################
+
+-| on récupère la configuration du firewall
+iptables -L
+
+-| on crée un nouveau fichier de règles
+nano /etc/iptables.secu.rules
+
+############## BASE RULES ############################
+VOIR précédent debian
+##########################################################
+
+################### MY RULES #################################################
+*filter
+
+# Allows all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
+-A INPUT -i lo -j ACCEPT
+-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+
+# Accepts all established inbound connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allows all outbound traffic
+# You could modify this to only allow certain traffic
+-A OUTPUT -j ACCEPT
+
+# Allows SSH connections
+# The --dport number is the same as in /etc/ssh/sshd_config
+-A INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
+
+# Allows DNS from anywhere
+-A INPUT -p tcp --dport 53 -j ACCEPT
+-A INPUT -p udp --dport 53 -j ACCEPT
+
+# Allows HTTP and HTTPS connections from anywhere (the normal ports for websites)
+-A INPUT -p tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp --dport 443 -j ACCEPT
+
+# Allow DHCP from anywhere
+-A INPUT -p udp --dport 68 -j ACCEPT
+
+# Allow SNMP from anywhere
+-A INPUT -p udp --dport 161 -j ACCEPT
+
+# Now you should read up on iptables rules and consider whether ssh access
+# for everyone is really desired. Most likely you will only allow access from certain IPs.
+
+# Allow ping
+#  note that blocking other types of icmp packets is considered a bad idea by some
+#  remove -m icmp --icmp-type 8 from this line to allow all kinds of icmp:
+#  https://security.stackexchange.com/questions/22711
+-A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+
+# log iptables denied calls (access via 'dmesg' command)
+-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied: " --log-level 7
+
+# Reject all other inbound - default deny unless explicitly allowed policy:
+-A INPUT -j REJECT
+-A FORWARD -j REJECT
+
+COMMIT
+#############################################################################
+
+-| on applique ce fichier de règle pour la session seulement
+iptables-restore < /etc/iptables.secu.rules
+
+-| appliquer les changements de façon permanente
+
+--| on sauve les règles dans le fichier maitre de iptables
+iptables-save > /etc/iptables.up.rules
+
+--| on s'assure que les nouvelles règles soit démarrés au reboot en créant un nouveau fichier
+nano /etc/network/if-pre-up.d/iptables
+###############################################
+#!/bin/sh
+/sbin/iptables-restore < /etc/iptables.up.rules
+###############################################
+
+--| on rend le script éxécutable
+chmod +x /etc/network/if-pre-up.d/iptables
+ou 
+on peux utilier le paquet iptables-persistent
+apt-get install iptables-persistent
+iptables-save > /etc/iptables/rules.v4
+ip6tables-save > /etc/iptables/rules.v6
+
+
+########################################################################
+CENTOS SECURISATION
+FERMER PORT ET OUVRIR QUE CEUX QUE L'ONT UTILISE    
+########################################################################
+
+-| on récupère les ports des services que l'ont utilise
+nmap -sTU -O 172.18.10.12
+
+################## OUTPUT #############################
+PORT     STATE         SERVICE
+--() 22/tcp  open          ssh
+--() 80/tcp  open          http
+--() 68/udp  open|filtered dhcpc
+--() 162/udp open|filtered snmptrap
+######################################################
+
+-| on récupère la configuration du firewall
+iptables -L
+
+-| on crée un nouveau fichier de règles
+nano /etc/iptables.secu.rules
+
+############## BASE RULES ############################
+VOIR précédent debian
+##########################################################
+
+################### MY RULES #################################################
+*filter
+
+# Allows all loopback (lo0) traffic and drop all traffic to 127/8 that doesn't use lo0
+-A INPUT -i lo -j ACCEPT
+-A INPUT ! -i lo -d 127.0.0.0/8 -j REJECT
+
+# Accepts all established inbound connections
+-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+# Allows all outbound traffic
+# You could modify this to only allow certain traffic
+-A OUTPUT -j ACCEPT
+
+# Allows SSH connections
+# The --dport number is the same as in /etc/ssh/sshd_config
+-A INPUT -p tcp -m state --state NEW --dport 22 -j ACCEPT
+
+# Allows DNS from anywhere
+-A INPUT -p tcp --dport 53 -j ACCEPT
+-A INPUT -p udp --dport 53 -j ACCEPT
+
+# Allows HTTP and HTTPS connections from anywhere (the normal ports for websites)
+-A INPUT -p tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp --dport 443 -j ACCEPT
+
+# Allow DHCP from anywhere
+-A INPUT -p udp --dport 68 -j ACCEPT
+
+# Allow SNMP from anywhere
+-A INPUT -p udp --dport 161 -j ACCEPT
+
+# Allow NMS Web Interface
+-A INPUT -p TCP --dport 8980 -j ACCEPT
+
+# Now you should read up on iptables rules and consider whether ssh access
+# for everyone is really desired. Most likely you will only allow access from certain IPs.
+
+# Allow ping
+#  note that blocking other types of icmp packets is considered a bad idea by some
+#  remove -m icmp --icmp-type 8 from this line to allow all kinds of icmp:
+#  https://security.stackexchange.com/questions/22711
+-A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
+
+# log iptables denied calls (access via 'dmesg' command)
+-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables denied: " --log-level 7
+
+# Reject all other inbound - default deny unless explicitly allowed policy:
+-A INPUT -j REJECT
+-A FORWARD -j REJECT
+
+COMMIT
+#############################################################################
+
+-| on applique ce fichier de règle pour la session seulement
+iptables-restore < /etc/iptables.secu.rules
+
+-| appliquer les changements de façon permanente
+
+--| on sauve les règles dans le fichier maitre de iptables
+iptables-save > /etc/iptables.up.rules
+
+--| on s'assure que les nouvelles règles soit démarrés au reboot en créant un nouveau fichier
+nano /etc/network/if-pre-up.d/iptables
+###############################################
+#!/bin/sh
+/sbin/iptables-restore < /etc/iptables.up.rules
+###############################################
+
+--| on rend le script éxécutable
+chmod +x /etc/network/if-pre-up.d/iptables
+ou 
+on peux utilier le paquet iptables-persistent
+apt-get install iptables-persistent
+iptables-save > /etc/iptables/rules.v4
+ip6tables-save > /etc/iptables/rules.v6

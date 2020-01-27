@@ -1,0 +1,73 @@
+Scénarios de configuration
+
+BIND9 peut être utilisé de différente façons , les plus fréquentes sont :
+Serveur cache
+
+Dans cette configuration, BIND9 va effectuer les requêtes DNS et se rappeler de la réponse pour la prochaine requête. Cette méthode peut être utile pour une connexion internet lente. En mettant les réponses DNS en cache, on diminue l'utilisation de la bande passante et (encore plus important) on réduit également le temps de latence.
+Serveur maître
+
+Utilisé pour contenir les enregistrements DNS d'un nom de domaine enregistré. Un ensemble d'enregistrements DNS pour un nom de domaine est appelé une "zone". (Le nom de domaine peut être imaginaire si on est dans le cas d'un réseau local fermé)
+Serveur esclave
+
+Un serveur esclave est utilisé en complément à un serveur maître, en servant de copie à la ou les zones configurées sur le serveur principal. Les serveurs secondaires sont recommandés sur des gros réseaux. Ceux-ci assurent la disponibilité de la zone DNS, même si le serveur maître est hors ligne.
+Serveurs hybrides
+
+Un serveur BIND9 peut être configuré à la fois comme serveur cache et comme serveur maître, comme serveur cache et serveur esclave, ou même serveur cache, serveur maître et esclave. Il suffit de combiner les différentes configurations présentées dans les exemples.
+Serveurs furtifs
+
+Il existe deux autres configurations fréquentes pour un serveur DNS. Serveur furtif maître et serveur furtif esclave. Ils sont identiques aux serveurs maître et esclave, mais avec une organisation légèrement différente : ils ne sont visibles qu'à l'intérieur du domaine.
+
+Par exemple, vous disposez de 3 serveurs DNS : A, B et C.
+
+A est un serveur maître, B et C sont des esclaves.
+
+Si votre domaine est configuré pour utiliser A et B comme serveurs de noms, alors C est un serveur furtif esclave. Il fait toujours office de serveur esclave, mais il ne sera pas interrogé depuis Internet.
+
+Si votre domaine est configuré pour utiliser B et C comme serveurs de noms, alors A est un serveur furtif maître. Tout édition de la zone ou ajout est fait sur A, mais les ordinateurs depuis internet interrogeront seulement B et C.
+
+Dans les deux cas, le serveur passif n'est pas interrogé depuis internet. Il peut ainsi être réservé pour une utilisation locale.
+Serveurs Récursifs / Non récursifs
+
+Les serveurs BIND9 peuvent être récursifs, c’est-à-dire interroger tour à tour les serveurs DNS nécessaires jusqu'à obtenir la réponse, et la transmettre à leur client.
+
+Dans le cas contraire (par défaut), le serveur DNS délègue la résolution du nom de domaine à un autre serveur DNS.
+
+Pour activer la récursivité, modifier /etc/bind/named.conf.options
+
+allow-recursion { any; };
+
+Les types d'enregistrement DNS
+
+Il existe de nombreux type d'enregistrements DNS, mais certains sont plus communs :
+Enregistrement de type A (Address)
+
+C'est le type le plus courant. Cet enregistrement fait correspondre une adresse IP à un nom de machine.
+
+www      IN    A      1.2.3.4
+
+Enregistrement de type CNAME (Alias)
+
+Utilisé pour créer un alias depuis un enregistrement de type A. Il est possible de créer un enregistrement de type CNAME qui pointe vers un autre enregistrement CNAME, mais ceci double le nombre de requêtes qui seront faîtes au serveur de noms. Cette méthode est donc déconseillée.
+
+mail     IN    CNAME  www
+www      IN    A      1.2.3.4
+
+Enregistrement MX (Mail Exchange)
+
+Utilisé pour définir vers quel serveur de la zone un email à destination du domaine doit être envoyé, et avec quelle priorité. Cet enregistrement doit pointer vers un enregistrement de type A, et non un alias CNAME. Il peut y avoir plusieurs enregistrements MX s'il existe plusieurs serveurs de messagerie sur le domaine.
+
+;** ENREGISTREMENTS "MX"
+
+@     IN    MX  10  mikvdw.ddns.net.
+@     IN    MX  20  audevdw.ddns.net.
+
+Enregistrement NS (Name Server)
+
+Utilisé pour définir quels serveurs répondent pour cette zone. Cet enregistrement doit pointer vers un enregistrement de type A, non pas vers un enregistrement de type CNAME.
+
+C'est ici que le serveur maître et les esclaves sont définis. Les serveurs furtifs sont intentionnellement omis.
+
+        IN    NS     ns.ubuntu-fr.lan.
+        [...]
+ns      IN    A      1.2.3.4
+

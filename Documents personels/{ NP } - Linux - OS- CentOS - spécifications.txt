@@ -1,0 +1,6 @@
+# activer le repos pour les outils basisques
+ vim /etc/yum.repos.d/CentOS-PowerTools.repo
+
+ change enabled=0 to 1
+
+yum install lynx est maintenant disponible 

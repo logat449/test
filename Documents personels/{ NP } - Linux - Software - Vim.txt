@@ -1,0 +1,25 @@
+# editer un fichier
+
+vim/vi file
+
+# sauver et quitter
+
+ESC > : > wq
+
+# quitter sans sauver
+
+shift > Z > Z
+
+# supprimer une ligne
+dd
+
+# copier/coller
+
+shift + Y (copie une ligne)
+shift + P (colle la ligne)
+
+# sauver les modifications dans un fichier read only
+utiliser --> :w!
+
+# rechercher du texte
+ESC > /texte_a_rechercher

@@ -1,0 +1,140 @@
+# commande LXC
+
+lxc avec tiret (lxc-start) ==> LXC
+lxc sans tiret (lxc start) ==> LXD
+
+# installation de LXC
+
+sudo apt-get install lxc
+dpkg -l bridge-utils
+
+! ATTENTION à bien utiliser le sudo sinon les commandes ne marcheront pas 
+
+# fichier de config par default de lxc
+cat /etc/lxc/default.conf
+
+# création d'un invité ubuntu 
+créer un container avec 
+pour nom 'nom_container', 
+pour la distribution Ubuntu
+sous la release Xenial, 
+ayant une architecture amd64 
+
+sudo lxc-create -t download -n nom_container -- -d ubuntu -r xenial -a amd64 (ubuntu 16.04)
+sudo lxc-create -t download -n u18 -- -d ubuntu -r bionic -a amd64 (ubuntu 18.04)
+
+default login/pass
+  username: ubuntu
+  password: ubuntu
+
+# lister les containers
+sudo lxc-ls
+# list all the containers, listing one per line along with its name, state, ipv4 and ipv6 addresses. 
+sudo lxc-ls --fancy
+
+# gestion d'un container
+sudo lxc-start -n u18
+sudo lxc-start/stop/delete -n name
+
+# avoir un shell root directement sur un container arrêté
+sudo lxc-execute u18 -- /bin/bash
+
+# lancer une commande en root directement sur le container sans authentification
+sudo lxc-attach -n u18 -- commande_shell
+
+# modifier le mot de passe root
+sudo lxc-attach -n u18 -- passwd root
+
+# création d'un utilisateur sur le container
+sudo lxc-attach -n u18 -- adduser test
+ou 
+lxc-execute
+
+# Accès au container
+
+-|soit avec la lxc console (le root ne peut pas se logger)
+sudo lxc-console -n u18
+
+-| quitter le lxc console
+CTRL+A Q
+
+-| soit par ssh
+# Chemin absolue du container
+/var/lib/lxc/nom_container/rootfs
+
+# fichier de configuration du container
+sudo cat /var/lib/lxc/u18/config  
+
+# destruction du container
+sudo lxc-stop -n nom_container
+sudo lxc-destroy -n nom_container
+ou 
+lxc-stop -n new-container lxc-destroy -n new-container
+
+# avoir les infos d'un container
+sudo lxc-info -n nom_container
+sudo cat /var/lib/lxc/u18/config  
+
+-| processus sur l'hôte
+sudo cd /sys/fs/cgroup/memory/lxc && for i in $(echo */); do echo $i && cat $i/cgroup.procs; done
+
+# verfiier et affichre le configuration lxc
+sudo lxc-checkconfig
+
+# Log de LXC
+sudo cat /var/log/lxd/lxd.log
+
+
+# freeze or unfreezer un container
+sudo lxc-freeze -n nom_container lxc-unfreeze -n nom_container
+
+# prendre un snapshot d'un container 
+sudo lxc-snapshot -n nom_container
+# connaitre l'emplacement d'un snapshot d'un container
+lxc-snapshot -L -n nom_container
+# restorer un snapshot
+lxc-snapshot -r snap0 -n nom_container
+
+# installation de LXC Web Panel
+wget https://lxc-webpanel.github.io/tools/install.sh -O - | bash
+http://your-server-ip:5000
+
+# update du LXC Web Panel
+wget https://lxc-webpanel.github.io/tools/update.sh -O - | bash
+
+# savoir si son container est privileged or unprivileged
+For LXC, you can check for lxc.id_map lines in your container’s configuration file
+
+# Backup de son container LXC
+
+-| on stop le container
+sudo lxc-stop -n nom_de_mon_container
+
+-| on va dans notre dossier du contaienr
+sudo -i && cd /var/lib/lxc/nom_de_votre_container/
+
+-| on compresse avec GZIP le contenu en gardant les uid/gid intactes lors de l'extraction
+GZIP=-9 tar --numeric-owner -czvf mon_container.tar.gz ./*
+
+# restauration de son container
+
+-| stopper les services suivants avant de restaurer
+sudo -i && systemctl stop lxcfs.service lxc-net.service lxc.service
+
+-| on créer un dossier portant le nom de notre container
+mkdir -p /var/lib/lxc/nom_de_votre_container
+
+-| on y attribue les permissions adéquates
+chmod a+rx /var/lib/lxc/nom_de_votre_container
+cd /var/lib/lxc/nom_de_votre_container
+
+-| on extrait l'archive de notre backup
+tar --numeric-owner -xzvf mon_container.tar.gz
+
+-| on redémarre les service 
+systemctl start lxcfs.service lxc-net.service lxc.service && exit
+
+-| on démarre notre container restauré
+sudo lxc-start -n nom_de_votre_container
+
+

@@ -1,0 +1,92 @@
+################# installation de syslog-ng
+
+# Debian 
+
+-| installation
+apt-get install syslog-ng
+
+-| configuration
+/etc/syslog-ng/syslog-ng.conf
+/etc/syslog-ng/conf.d/my_conf.conf
+/etc/default/syslog-ng
+
+-| manage syslog-ng service
+/etc/init.d/syslog-ng start/stop/restart/reload/status
+
+-| debuger configuration syslog-ng
+/sbin/syslog-ng (-F optionel)  (debian)
+ /usr/sbin/syslog-ng (alpine)
+
+
+############## ALL client ##############################
+
+-|############ Alpine
+==! on n'utilisera pas syslogd
+
+-| installation syslog-ng
+apk add syslog-ng
+
+-| manage service 
+rc-service syslog-ng start/stop/restart/reload/status
+
+-| debug config file
+/usr/sbin/syslog-ng
+
+
+-|########### CentOS
+
+-| installation 
+yum remove rsyslog
+sudo yum install wget
+
+# extra package for syslog-ng
+wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+rpm -Uvh epel-release-latest-8.noarch.rpm
+
+# Add the repo containing the latest unofficial build of syslog-ng
+cd /etc/yum.repos.d/
+wget https://copr.fedorainfracloud.org/coprs/czanik/syslog-ng324/repo/epel-7/czanik-syslog-ng324-epel-8.repo
+yum install syslog-ng --nobest
+systemctl enable syslog-ng
+systemctl start syslog-ng
+
+-| manage service 
+systemctl enable syslog-ng
+systemctl start syslog-ng
+
+-| debug config file
+/usr/sbin/syslog-ng
+/sbin/syslog-ng
+
+
+# Configuration
+
+==> toujours inclure la version en haut @3.19
+
+-| Sources
+Une "source" est le media d'arrivée d'un log, c'est à dire par quel moyen l'information va t elle arriver à syslog-ng. Il peut s'agir :
+
+    d'un flux local
+    d'un flux réseau (tcp ou udp)
+    d'une socket unix 
+
+-| Destinations
+La déclaration d'une destination va permettre de définir ce que l'on fait d'un fichier de log que l'on vient de recevoir. Il est alors possible de :
+
+    Stocker les messages dans un fichier (ce que l'on fait la plupart du temps)
+    renvoyer les logs à une machine distante
+    envoyer les logs à un utilisateur connecté sur un termin
+
+
+-| Filters
+
+Le filtre est un peu la table de routage de syslog-ng. Un filtre permet d'identifier un "type" de logs pour ensuite lui appliquer un une destinati
+
+-| Log
+Déclaration d'un log
+
+La déclaration d'un log est le liant de notre sauce ! Un log selon syslog-ng est donc composé :
+
+    d'une source
+    d'une destination
+    de filtres éventuels 

@@ -1,0 +1,236 @@
+# Docker compose permet de gérer plusieurs containers docker dans un même fichier de configuration docker-compose.yml
+
+
+############ Commandes générales ############################################################################################
+
+-| installation ou vérification si installé
+docker-compose --version
+sudo curl -L "https://github.com/docker/compose/releases/download/1.23.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/bin/docker-compose && sudo chmod +x /usr/bin/docker-compose
+
+-| démarrer une stack Docker compose
+=> lance la création de l'ensemble des conteneurs
+docker-compose up
+docker-compose up -d (pour les lancer en tâches de fond)
+
+-| afficher les container et leur état 
+docker-compose ps
+
+-| télécharger l'ensemble des containers décrits dans notre fichier de configuration
+docker-compose pull
+
+-| afficher les logs de tous le containers
+docker-compose logs -f --tail 5
+
+-| arrêtez une stack docker compose (ne supprime pas)
+docker-compose stop
+
+-| supprimer la stack compose
+docker-compose down
+
+-| vérifier le fichier.yml de configuration de la stack docker compose
+docker-compose config
+
+
+############ Crée un fichier docker-compose.yml #####################################################################
+
+-| Lancer votre stack docker compose
+docker-compose up -d
+
+-| créer un dossier pour votre projet docker-compose
+mkdir /home/user/tp_docker_compose
+
+-| créer un fichier de config dedans
+nano docker-compose.yml
+
+################################################ docker-compose.yml #####################################################################################
+version: '3'							// obligatoire en début
+
+services: 								// argument service
+	db:									// nom du service (db)
+	image: mysql:5.7					// nom de l'image correspondante // possiiblité d'utiliser argument build avec dockerfile
+	volumes:							// argument volume pour définir un stockage persistant
+	  - db_data:/var/lib/mysql 			// disque persistant représenter par le dossier /var/lib/mysql dispo sur l'hôte (== /data/mysql:/var/lib/mysql)
+	restart: always						// si le container rencontre une erreur fatale, il peut s'arrêter, le serveur MySQL redémarrera automatiquement si il s'arrête    
+	environment:						// on définit les variables d'environnement
+	  MYSQL_ROOT_PASSWORD: somewordpress
+	  MYSQL_DATABASE: wordpress
+	  MYSQL_USER: wordpress
+	  MYSQL_PASSWORD: wordpress 
+
+	wordpress:							// nom du service (wordpress)
+	depends_on:							// indique que le service1(db) démarrera avant le service2(wordpress)
+	  - db
+	image: wordpress:latest
+	ports:								// permet de dire à docker compose qu'on veut exposer un port de notre machine hôte vers notre conteneur(rendre accessible depuis l'extérieur)
+	  - "8000:80"						// hôte:8080 vers container:80
+	restart: always
+	environment:
+	  WORDPRESS_DB_HOST: db:3306
+	  WORDPRESS_DB_USER: wordpress
+	  WORDPRESS_DB_PASSWORD: wordpress
+	  WORDPRESS_DB_NAME: wordpress
+##################################################################################################################################################################
+
+
+
+# Fichier de configuration docker-compose avancée full
+
+################################################ docker-compose.yml avancée FULL #####################################################################################
+version: '3.7'							// obligatoire en début
+services:								// inscruction services
+  webapp:								// nom du service
+    image: 								// spécifie une image pour le container
+    build:								// configuration du build du service
+      context: ./dir 					// ou est enregistré l'image ou le dockerfile ET où sera enregistré l'image construite
+      dockerfile: Dockerfile-alternate	// dockerfile utilisé pour l'image
+      args:								// instruction args
+        buildno: 1						// définition d'un argument buildno de valeur 1 pouvant être utiliseé durant le build
+      labels:							// on peut ajouter des labels(métadonnées)
+      	com.example.description: "Accounting webapp"
+    	com.example.department: "Finance"
+    	com.example.label-with-empty-value: "" 
+      shm_size: '2gb'   				// permet de définir la taille du dossier partagée (par default 64MB et en bits normalement)
+      cgroup_parent: m-executor-abcd	// spécifie un cgroupe pour le container
+      container_name: custom_name		// nom customisé pour le container
+      depends_on :						// indique que le container dépend d'un service créer précédement, par contre il n'attend pas que les svc soit créer
+         - nom_svc
+         - nom_svc2
+      deploy:							// configuraiton de déploiement (limitation hardware par exemple)
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 50M
+        reservations:
+          cpus: '0.25'
+          memory: 20M   
+        restart_policy:					// permet de définir le comportement de redémarrage du containers si il s'arrête ou qu'il est redémarrer (remplace start)
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s  
+  	dns:								// permet de définir des servers DNS spécifiques
+		- 8.8.8.8
+		- 9.9.9.9
+  	dns_search:						// permet de définir des DNS search domaines
+		- dc1.example.com
+		- dc2.example.com
+  	entrypoint: /code/entrypoint.sh 	// rédéfinit le point d'entrée 
+  	env_file:							// ajoute des variables d'environnement depuis un fichier ou plusieurs
+		- ./common.env
+		- ./apps/web.env
+		- /opt/secrets.env
+	environment:						// ajouter des variables d'environnement
+		RACK_ENV: development
+		SHOW: 'true'
+		SESSION_SECRET:
+	expose: 							// forward des port
+		- "3000"
+		- "8000"
+	extra_hosts:						// permet de mapper hôtes
+		- "somehost:162.242.195.82"
+		- "otherhost:50.31.209.229"
+	healthcheck:						// défini les procédures pour déterminer l'état de santé du container
+		test: ["CMD", "curl", "-f", "http://localhost"]
+		interval: 1m30s
+		timeout: 10s
+		retries: 3
+		start_period: 40s
+	links:								// lie un container à d'autres services déclarés
+		- db
+   		- db:database
+   		- redis
+   	logging:							// configure le système de log
+  		driver: syslog 					// peut être de type "json-file" ou "none" aussi
+  		options:
+    	syslog-address: "tcp://192.168.0.42:123"
+    network_mode: "bridge"				// utiliser le même paramètre que --network
+	network_mode: "host"				// Port mapping is incompatible avec ce mode
+	network_mode: "none"
+	network_mode: "service:[service name]"
+	network_mode: "container:[container name/id]"
+    networks:							// définie les paramètres réseau
+    	app_net:						// définie une IP FIXE
+        ipv4_address: 172.16.238.10
+        ipv6_address: 2001:3984:3989::10						
+     	- some-network					// réseau à joindre 
+     	- other-network
+    pid: "host"							// définir le PID du container sur l'hôte 	
+    ports:								// définit des forward de port (version courte)
+	 	- "3000"
+	 	- "3000-3005"
+	 	- "8000:8000"
+	 	- "9090-9091:8080-8081"
+	 	- "49100:22"
+	 	- "127.0.0.1:8001:8001"
+	 	- "127.0.0.1:5000-5010:5000-5010"
+	 	- "6060:6060/udp"
+	ports:								// définit des forward de port (version longue)
+  		- target: 80
+    	published: 8080
+    	protocol: tcp
+    	mode: host
+    restart: "no"						// ne redémarre pas le container
+	restart: always						// redémarre tjrs le container 
+	restart: on-failure					// restart if exit code indicate on-failure error
+	restart: unless-stopped	
+	secrets:
+  		my_secret:
+    		file: ./my_secret.txt
+  		my_other_secret:
+    		external: true
+    tmpfs:								// permet de monter un répertoire temporairement
+  		- /run
+  		- /tmp
+	- type: tmpfs
+     target: /app
+     tmpfs:
+       size: 1000
+    volumes:							// short syntax
+  		# Just specify a path and let the Engine create a volume
+  		- /var/lib/mysql
+		# Specify an absolute path mapping
+		- /opt/data:/var/lib/mysql
+		# Path on the host, relative to the Compose file
+		- ./cache:/tmp/cache
+		# User-relative path
+		- ~/configs:/etc/configs/:ro
+		# Named volume
+		- datavolume:/var/lib/mysql
+	volumes:							// long_syntax
+      - type: volume
+        source: mydata
+        target: /data
+        volume:
+          nocopy: true
+      - type: bind
+        source: ./static
+        target: /opt/app/static	
+    # OTHERS VALUE
+    user: postgresql
+	working_dir: /code
+	domainname: foo.com
+	hostname: foo
+	ipc: host
+	mac_address: 02:42:ac:11:65:43
+	privileged: true
+	read_only: true
+	stdin_open: true
+	tty: true
+    
+   
+	
+ 
+
+
+	
+
+
+	
+	
+	
+	
+
+		
+		
+  
+##################################################################################################################################################################

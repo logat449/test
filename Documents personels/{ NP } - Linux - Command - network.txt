@@ -1,0 +1,20 @@
+# afficher la configuration réseau
+
+ip addr
+
+# fichier de configuration réseau
+
+/etc/network/interface (ubuntu, debian, alpine ..)
+/etc/sysconfig/network-scripts/ifcfg-interface-name (redhat)
+/etc/sysconfig/network
+
+# fichier de configuration DNS
+
+/etc/resolv.conf
+
+# afficher les routes par default
+ip route
+
+# différents dhcp
+dhclient
+udhcpc

@@ -1,0 +1,15 @@
+sudo root
+=> on peut attribuer une commande spécifiques avec les droits root
+=> on peut accorder tous les droits root
+=> on peut omettre le mot de passe root à donner
+
+
+=> su donnera le mot de passe constamment
+su 
+on donne un certain niveau de droits root en gardant l'environnement de l'utilisateur
+
+su root
+on donne un certain niveau de droits root en gardant l'environnement de l'utilisateur
+
+su - root
+on devient l'utilisateur spécifié

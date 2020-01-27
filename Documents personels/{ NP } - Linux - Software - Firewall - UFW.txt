@@ -1,0 +1,57 @@
+UFW est le firewall intégré à ubuntu pour manager iptables
+UFW = Uncomplicated firewall
+
+# pour continuer à utiliser iptable 
+sudo apt install iptables-persistent netfilter-persistent
+
+# firewall management 
+sudo ufw enable && sudo ufw disable
+
+# autoriser ssh 
+ufw allow in 22/tcp
+
+# activer le NAT et PORT FORWARDING (ne fonctione pas )
+edit /etc/default/ufw & change the parameter DEFAULT_FORWARD_POLICY to "ACCEPT"
+edit /etc/ufw/sysctl.conf & uncomment net.ipv4.ip_forward=1
+
+# POUR Le NAT (tout en bas)
+ADD TO /etc/ufw/before.rules
+
+########################################################################
+# NAT table rules
+*nat
+:POSTROUTING ACCEPT [0:0]
+
+# Forward traffic through eth0 - Change to match you out-interface
+-A POSTROUTING -s 192.168.1.0/24 -o eth0 -j MASQUERADE
+
+# don't delete the 'COMMIT' line or these nat table rules won't
+# be processed
+COMMIT
+########################################################################
+
+
+# POUR LE PORT FORWARDING
+ADD TO /etc/ufw/before.rules (tout en bas)
+########################################################################
+# NAT table rules
+*nat
+:PREROUTING ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+
+# Port Forwardings
+-A PREROUTING -i eth0 -p tcp --dport 22 -j DNAT --to-destination 192.168.1.10
+
+# Forward traffic through eth0 - Change to match you out-interface
+-A POSTROUTING -s 192.168.1.0/24 -o eth0 -j MASQUERADE
+
+# don't delete the 'COMMIT' line or these nat table rules won't
+# be processed
+COMMIT
+########################################################################
+
+> enable change 
+sudo ufw disable && sudo ufw enable
+
+# afficher les règles ajoutées
+sudo ufw show added 

@@ -1,0 +1,35 @@
+-| configurer l'interface permettant ld'accès à la machine avec une ip fixe, puis arrêtez la machine virtuelle
+
+# appliquer et recharger les configurations des interfaces
+sudo netplan apply
+sudo netplan --debug apply
+
+# le fichier 50-cloud-init.yaml est le fichier pour le premier interface
+sudo nano /etc/netplan/50-cloud-init.yaml
+
+############################
+network:
+    ethernets:
+		#dhcp4: true
+		addresses: [10.0.2.15/24]
+		#gateway4: 10.145.31.254
+		#nameservers:
+		#addresses: [8.8.4.4,8.8.8.8]
+	version: 2	
+############################
+
+# Configurer un 2eme interface
+cd /etc/netplan/
+sudo mv 50-cloud-init.yaml 51-cloud-init.yaml
+sudo nano 51-cloud-init.yaml
+
+##############################
+network:
+    ethernets:
+         enp0s8:
+             dhcp: true
+    version: 2         
+##############################    
+
+
+

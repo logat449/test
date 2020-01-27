@@ -1,0 +1,8 @@
+# ajouter un utilisateur pour sudo
+
+> dans le cas de message d'erreur comme l'user ne fait pas partie du groupe sudoers etc...
+
+-| 1er méthode : ajouter l'utilisateur au groupe sudo
+add nom_user sudo
+
+-| 2eme méthode : 

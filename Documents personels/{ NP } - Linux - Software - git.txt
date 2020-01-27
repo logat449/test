@@ -1,0 +1,34 @@
+# vérifier si git est installé 
+git --version
+
+# configurer son nom et email utilisez pour creer son compte github
+git config --global user.name "Enfzifh"
+git config --global user.email "saddikiu@gmail.com"
+fZ|645gzrg@@_(-
+
+# git config gile 
+/home/user/.gitconfig
+
+# creer un dossier pour stocker tous ses projets git
+mkdir /home/user/m_repo_git
+
+# creer un repo local dans ce dossier
+mkdir my_repo
+cd my_repo
+git init
+
+# ajouter un fichier ou un dossier dans un repo
+git add fichier.txt
+git commit -m "fichier ajouté au repo"
+
+# supprimer un fichier ou un dossier dans un repo
+git rm -r folder
+git rm fichier
+git commit -m "Dossier ou fichier bien supprimé"
+
+# appliquer les changements sur le repo distant(github)
+git push origin master
+
+# retenir username et password pour tous les autres prompts
+git config --global credential.helper store
+git config --global credential.helper cache

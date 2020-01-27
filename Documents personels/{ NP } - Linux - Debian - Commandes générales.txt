@@ -1,0 +1,29 @@
+# creer un utilisateur
+adduser nom_user
+
+# creer un group
+/sbin/groupadd greboot(nom_grpe)
+
+# ajouter un user existant dans un groupe
+usermod -a -G group_name user_name
+
+# A quel groupe appartient tel user
+> se logger en temps que l'user
+> groups
+
+# pour donner des droits spécifiques à des utilisateurs il est 
+nécéssaire d'avoir sudo d'installer et d'éditer le fichier /etc/sudoers
+
+# donner les droits de reboot à un utilisateur par l'intermédiaire de la commande sudo
+
+sudo apt-get install sudo
+nano /etc/sudoers
+
+###############################################################################
+# Allow user superv & test to execute reboot & poweroff
+superv ALL=NOPASSWD: /usr/bin/systemctl reboot,  /usr/bin/systemctl poweroff 
+###############################################################################
+
+
+
+

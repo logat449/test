@@ -1,0 +1,72 @@
+apt-get install tmux
+
+# lancer tmux
+tmux
+
+# lancer tmux si problème de séparator
+tmux -u
+
+# emplacement du fichier de config
+~/.tmux.conf
+
+# creer un nouveau terminal
+CTRL+B c
+CTRL+B c
+
+# renommer un terminal
+CTRL+B ,
+CTRL+B ,
+
+# switcher entre les terminals
+CTRL+B n
+CTRL+B n
+
+# afficher la liste des terminaux et choisir
+CTRL+B w
+CTRL+W w
+
+# splitter un terminal horizontal
+CTRL+B "
+CTRL+W *
+
+# splitter un terminal vertical
+CTRL+B SHIT+%
+CTRL+W ù(%)
+
+# switcher entre les terminaux splittés
+CTRL+b o
+CTRL+b flèche directionnelle
+
+ATL+flèche directionnelle
+
+# affiche le num des terminaux splittés
+CTRL+B Q
+CTRL+W Q
+
+# changer l'organisation visuelle des terminaux
+CTRL+B espace
+CTRL+W espace
+
+# changer les dimension de la fenêtre
+CTRL+B ALT+flèche directionnelle
+CTRL+W ALT+flèche directionnelle
+
+# recharger la config tmux
+CTRL+W r
+
+# edite le fichier de config rapidement
+CTRL+W SHIT+M
+
+# fermer/supprimer un temrinal splitté
+exit
+
+# quitter tmux entièrement toute fenêtre confondue
+tmux kill-server
+
+# changer l'organisation des différentes instances/fenêtres tmux (les fenêtres sont nommées)
+CTRL+W+:
+# remettre la fenêtre portant le num_fenêtre en premiere position
+> swap-windows -t num_fenêtre  
+# échanger la place de 2 fenêtre, la 3 avec la 1
+> swap-window -s 3 -t 0
+

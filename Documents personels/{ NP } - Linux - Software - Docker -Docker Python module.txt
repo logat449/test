@@ -1,0 +1,28 @@
+# installation python docker
+
+-> on se place dans son environnement virtuel
+
+-| installation du module python docker
+pip3 install docker
+
+-| installer et gérer des images 
+python3 pour lancer la commande python
+>>> import docker
+>>> client = docker.from_env()
+>>> client.images.list()
+>>> client.images.pull('ubuntu:latest')
+>>> client.images.pull('nginx')
+>>> client.images.pull('rabbitmq:3-management')
+>>> client.images.pull('rabbitmq:3')
+>>> client.images.pull('rabbitmq:latest')
+
+-| lister les containers lancés(depuis le shell)
+docker pa -a
+
+-| supprimer un container
+docker container rm 6d8ac1e6a443 dd36f284f7c8 92b09e73f694 bc8f959500a9 ce83a77f8bad
+
+-| supprimer tous les containers créer et arrêté
+docker container ls -a --filter status=exited --filter status=created 
+docker container prune
+ 

@@ -1,0 +1,6 @@
+# Dig interrroger les serveurs DNS 
+
+
+-| interroger un domaine 
+
+dig ubuntu-fr.org

@@ -1,0 +1,21 @@
+# screen
+
+# création d'un terminal
+screen -S nom
+
+# lister les screen existants
+screen -ls
+
+# attacher un screen existant (detached)
+screen -r N°
+screen -r nom
+
+# détacher un screen
+CTRL+a-d
+
+# supprimer un screen
+-> se rattacher à ce screen
+-> exit
+
+# supprimer des screens mort
+screen -wipe

@@ -1,0 +1,103 @@
+# démarrer/arrêter un container par son nom ou ID
+docker start/stop some-rabbit
+
+# installer l'image officiel de rabbitmq
+docker pull rabbitmq
+
+# lancer rabbitmq + web interface
+docker run -d --hostname my-rabbit --name some-rabbit rabbitmq:3-management
+
+# check for log to see rabbitmq
+docker logs rabbitmq (rabbitmq:3)
+
+### RabbitMQ User Management Commands ### 
+
+# Delete User:
+rabbitmqctl delete_user user
+
+# Change User Password:
+rabbitmqctl change_password user strongpassword
+
+# Create new Virtualhost:
+rabbitmqctl add_vhost /my_vhost
+
+# List available Virtualhosts:
+rabbitmqctl list_vhosts
+
+# Delete a virtualhost:
+rabbitmqctl delete_vhost /myvhost
+
+# Grant user permissions for vhost:
+rabbitmqctl set_permissions -p /myvhost user ".*" ".*" ".*"
+
+# List vhost permissions:
+rabbitmqctl list_permissions -p /myvhost
+
+# To list user permissions:
+rabbitmqctl list_user_permissions user
+
+# Delete user permissions:
+rabbitmqctl clear_permissions -p /myvhost user
+
+
+################### INSTALLATION RABBITMQ ####################
+# installer erlang
+
+# import Erlang repository GPG key
+wget -O- https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc | sudo apt-key add -
+
+# add erlang repo
+echo "deb https://packages.erlang-solutions.com/ubuntu bionic contrib" | sudo tee /etc/apt/sources.list.d/rabbitmq.list
+
+# install erlang
+sudo apt update
+sudo apt -y install erlang
+
+# start erl shell to see if it's ok
+erl
+
+# import rabbitmq
+wget -O- https://dl.bintray.com/rabbitmq/Keys/rabbitmq-release-signing-key.asc | sudo apt-key add -
+wget -O- https://www.rabbitmq.com/rabbitmq-release-signing-key.asc | sudo apt-key add -
+
+# add rabbitmq repo
+echo "deb https://dl.bintray.com/rabbitmq/debian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/rabbitmq.list
+
+# install rabbitmq server
+sudo apt update
+sudo apt -y install rabbitmq-server
+
+# check service 
+sudo systemctl status rabbitmq-server.service
+
+# check if service launched at boot
+systemctl is-enabled rabbitmq-server.service
+
+# if disable add it
+sudo systemctl enable rabbitmq-server
+
+# enable rabbitMQ management web dashboard
+sudo rabbitmq-plugins enable rabbitmq_management
+
+-> The Web service should be listening on TCP port 15672
+
+# check if
+ss -tunelp | grep 15672
+
+# If you have an active UFW firewall, open both ports 5672 and 15672
+sudo ufw allow proto tcp from any to any port 5672,15672
+
+# add forward in virtual box from rien:2523 host to 10.0.2.15:15672 vm
+
+# Access web interface
+http://[server IP|Hostname]:2523 (F_15672)
+
+# Login
+-!! only from localhost
+user guest 
+password guest
+
+# create an admin user
+rabbitmqctl add_user admin StrongPassword  (test vm mdp)
+rabbitmqctl set_user_tags admin administrator
+rer

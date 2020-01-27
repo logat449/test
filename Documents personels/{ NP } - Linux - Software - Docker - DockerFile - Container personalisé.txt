@@ -1,0 +1,214 @@
+############ création d'un dockerfile ###########
+
+-| creer un fichier dockerfile
+
+################################# dockerfile ####################################################
+# définir dans celui-ci l'image que vous allez utiliser comme base
+FROM image_name
+
+# exécuter des commandes dans votre conteneur (peux être appelé 2x ou plus à des endroits différents)
+RUN apt-get update -yq && apt-get install tmux && other command
+
+# copier ou de télécharger des fichiers dans l'image (peux être appelé 2x ou plus à des endroits différents)
+ADD . /backend_source
+
+# permet de modifier le répertoire courant (équivalent de cd)
+WORKDIR /backend_source
+
+# permet d'indiquer le port sur lequel votre backend écoute
+EXPOSE 2368
+
+# permet d'indiquer quel répertoire vous voulez partager avec l'hôte
+VOLUME /home/test/share
+
+# instruction devant tjrs être présent à la fin et dit au conteneur quelle commmande il doit exécuter au démarrage
+CMD npm run start
+##################################################################################################################
+
+# Fichier .dockerignore
+-| creer un fichier .dockerignore (équivalent à .gitignore) dans le même folder que dockerfile
+=> perme de ne pas copier certains fichierset/ou dossiers dans notre conteneur lors de l'exécution de ADD
+
+######################################################### fichier .dockerignore ########################################################################################
+# comment 	Ignored.
+
+node_modules
+
+.git
+
+# Exclude files and directories whose names start with temp in any immediate subdirectory of the root. 
+# For example, the plain file /somedir/temporary.txt is excluded, as is the directory /somedir/temp.
+*/temp* 
+
+# Exclude files and directories starting with temp from any subdirectory that is two levels below the root. For example, /somedir/subdir/temporary.txt is excluded.
+*/*/temp* 	
+
+# Exclude files and directories in the root directory whose names are a one-character extension of temp. For example, /tempa and /tempb are excluded.
+temp? 
+
+# le point d'exclamation est utiliser pour indiquer des exceptions aux exclusion
+*.md  		// on exclut tous les fichiers.md
+!README.md	// à l'exception du fichier README.md
+
+# example d'exclusion et d'exception si l'exception match un résultat d'inclusion => on mettra l'exception après
+*.md
+!README*.md 
+README-secret.md
+########################################################################################################################################################################
+
+
+-| comment çà marche 
+
+lorsque docker construit votre image depuis votre dockerfile, il va créer un conteneur pour chaque instruction, et le résultat sera sauvegardé dans une layer. Le résultat final étant un ensemble de layers qui construisent une image Docker complète.
+
+Mais cela apporte aussi de nombreux avantages. Si une layer ne bouge pas entre deux builds, Docker ne la reconstruira pas. Seules les layers situées après une layer qui se reconstruit seront elles aussi reconstruites.
+
+Vous pouvez ainsi créer de nouvelles images très rapidement, sans devoir attendre indéfiniment le build de notre image.
+
+Dans notre cas, si vous ajoutez une dépendance dans le fichier package.json, et que vous relancez un build de votre image, vous verrez qu'il n'y a que les layers situées après leADD package.json /app/ qui seront reconstruites ; l'installation de Node.js restera en cache.
+
+
+-| Crée son container avec le dockerfile
+
+docker build -t nom_image_de_mon_container .
+-t : pour donner un nom à son image
+. : pour indiquer où se trouve le docker file, le point pour la racine du projet
+
+
+-| Lancer son container
+
+docker run -d -p 2368:2368 nom_image_de_mon_container
+=> dans le dossier logs on retrouvera les logs de notre application
+=> on pourra accéder au container par http://127.0.0.1:2368
+
+
+################################# DOCKER FILE ADVANCED FULL ########################################################################
+
+################################# dockerfile ####################################################
+# PARSER DIRECTIVES : commantaires spéciaux, peux être utiliser une seul fois
+# => doit être obligatoirement tout en haut du fichier
+# my_var=value
+
+# SYNTAX : permet de définir les emplacements utiliser pour le build du dokerfile ou d'externaliser les variables
+# syntax=docker/dockerfile
+# syntax=docker/dockerfile:1.0
+# syntax=docker.io/docker/dockerfile:1
+# syntax=docker/dockerfile:1.0.0-experimental
+# syntax=example.com/user/repo:tag@sha256:abcdef...
+
+# ESCAPE : défini le caractère d'échappement utilsier dans le docker file (par default c'est l'antislash \)
+# escape=` (backtick)
+
+# ENVIRONNEMENT replacement : variables d'environnement spécifique à l'environennment ENV et du dockerfile)
+# => peut être utilsier dans certaines instructions comme variables
+ENV foo /bar     			// déclarer la variable
+${foo} $foo \$foo \{$foo}	// accéder à la variable
+ENV abc=bye def=$abc 		// déclarer un alias d'une variable existante
+# instructions qui supportent les variables d'environnement --> ADD COPY ENV EXPOSE FROM LABEL STOPSIGNAL USER VOLUME WORKDIR
+
+# ENV : perme de donner une valeur à une clé 
+# docket inspect permet de voir ces valeurs
+# 2formes différentes : ENV <key> <value> ou ENV <key>=<value>
+
+# Initilize un nouveau build et définie dans celui-ci l'image que vous allez utiliser comme base
+# un dockerfile valid doit commencer par une instruction FROM (seulement ARG peut être utilise avant)
+# il peut apparaitre plusieurs fois pour creer plusieurs images ou utiliser un autre build comme dépendances
+# on peut définir un nom de build pour chaque instructions FROM (build_name)
+# si aucun tag ou digest sont spécifiés, par default latest est utilisé
+FROM image_name	stage_build_from_name
+FROM image_name:tag stage_build_from_name
+FROM image_name@digest stage_build_from_name
+
+# exécuter des commandes dans votre conteneur (peux être appelé 2x ou plus à des endroits différents)
+# peut avoir 2 form --> RUN "/bin/sh -c" OU RUN ["/bin/ls", "-l", "-a", "/home/user"]
+# on peut utiliser différents shell avec RUN ["/bin/bash", "-c", "echo hello"] (l'exec est parsé comme un tableau JSON, on est obligé d'utiliser les guillements " et pas les simple quote ')
+# le cache des instructions RUN ne sont pas invalidés durant les prochains BUILD, pour invalider le cache on doit utiliser l'option --no-cache dans "docker build --no-cache"
+# l'instruction ADD peut invalider aussi le cache
+# on peut utiliser un \ pour continer les commandes sur une nouvelle ligne
+RUN apt-get update -yq && apt-get install tmux \ 
+&& other command
+
+# CMD : 1 seule instruction cmd dans un dockerfile pour définir les call de cmd par default
+# 3 formes disponibles 
+CMD ["executable","param1","param2"] (exec form, this is the preferred form)
+CMD ["param1","param2"] (as default parameters to ENTRYPOINT)
+CMD command param1 param2 (shell form)
+# EXAMPLE
+CMD echo "This is a test." | wc -
+
+# LABEL : permet d'ajouter des métadonnées à une image (de type key-value pair)
+# la commande docker inspect permet de connaitre les métadonnées(LABEL) d'une image
+# EXAMPLES:
+LABEL "com.example.vendor"="ACME Incorporated"
+LABEL com.example.label-with-value="foo"
+LABEL version="1.0"
+LABEL description="This text illustrates \
+that label-values can span multiple lines."
+
+# ADD: instruction permettant de copier nouveau fichier, dossier ou données distante et de les ajouter au système de fichier de <dest>
+# copier ou de télécharger des fichiers dans l'image (peux être appelé 2x ou plus à des endroits différents)
+# 2 formes --> ADD [--chown=<user>:<group>] ["<src>",... "<dest>"] 
+ADD . /backend_source
+ADD hom* /mydir/        		# adds all files starting with "hom"
+ADD hom?.txt /mydir/    		# ? is replaced with any single character, e.g., "home.txt"
+ADD test relativeDir/          	# adds "test" to `WORKDIR`/relativeDir/
+ADD test /absoluteDir/         	# adds "test" to /absoluteDir/
+ADD --chown=55:mygroup files* /somedir/
+ADD --chown=bin files* /somedir/
+ADD --chown=1 files* /somedir/
+ADD --chown=10:11 files* /somedir/
+
+
+# COPY : similaire à ADD mais ne supporte pas une source de type URL ou l'extraction d'une archive.tar de la source vers la destination
+
+# ENTRYPOINT: Permet de configurer le container afin qu'il lance un executable
+# au lieu d'utiliser "docker run -i -t --rm -p 80:80 nginx"
+# EXAMPLE 1 // top sera le seul processus 
+FROM ubuntu
+ENTRYPOINT ["top", "-b"]
+CMD ["-c"]
+# EXAMPLE 2 // démarrer apache en arrière plan
+FROM debian:stable
+RUN apt-get update && apt-get install -y --force-yes apache2
+EXPOSE 80 443
+VOLUME ["/var/www", "/var/log/apache2", "/etc/apache2"]
+ENTRYPOINT ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
+# ENTRPOINT et CMD intérragissnt ensemble au lancement du contaiener
+# CMD doit être utiliser pour définir des arguments par default pour un ENTRYPOINT
+
+# WORKDIR : défini le répertoire pour RUN, CMD, ENTRYPOINT, COPY, ADD
+# permet de modifier le répertoire courant (équivalent de cd)
+# si le dossier n'existe pas alors il sera crée automatiquement
+WORKDIR /backend_source		// WORKDIR = /backend_source
+WORKDIR test				// WORKDIR = /backend_source/test
+WORKDIR projet1				// WORKDIR = /backend_source/test/projet1
+ENV DIRPATH /path
+WORKDIR $DIRPATH/$DIRNAME
+
+# permet d'indiquer le port sur lequel votre backend écoute
+# par default ce sont des ports TCP
+# ces paramètres sont modifiés par l'option "-p 80:80/tcp" de la commande "docker run"
+EXPOSE 2368
+EXPOSE 53/udp
+EXPOSE 53/tpc
+
+# Créer un point de montage avec un nom spécifique 
+# permet d'indiquer quel répertoire vous voulez partager avec l'hôte
+# le répertoire de l'hôte qui sera partagé doit être spécifié au lancement du container 
+VOLUME /home/test/share
+
+# USER : Défini l'utilisateur(UID)  utilsier au lancement de l'image et pour les instructions REUN, CMD, ENTRYPOINT
+
+# ARG : déifnie des variables que l'utilisateur peut utiliser lors de l'exécution de la commande docker build
+# en utilisant --build-arg var_name=value
+# ENV variables remplacera toujours les ARG variables
+
+# HEALTHCHECK : permet de dire à docker comment tester si un container est en bon fonctionnement (si srv est démarré)
+# doit être combiné avec DM
+# EXAMPLES : verifier tote les 5 minutes si le serveur est capable de renvoyer l'index du site(3second de timeout)
+HEALTHCHECK --interval=5m --timeout=3s \
+  CMD curl -f http://localhost/ || exit 1
+
+# instruction devant tjrs être présent à la fin et dit au conteneur quelle commmande il doit exécuter au démarrage
+CMD npm run start
+##################################################################################################################

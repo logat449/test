@@ -1,0 +1,21 @@
+# récupérer une colonne
+
+awk {print $1}
+
+# récupérer une valeur de la ligne d'une colonne
+awk {NUM==1 $1} // ligne 1 colonne 1
+
+# somme des valeurs d'une colonne 
+awk '{ total += $1; count++ }
+
+# stocker chaque ligne dans une variable
+awk '/a/ {myvar = $0} /c/ {print $myvar $1}' $file 
+
+# stocker chaque colonne dans une variable
+awk '{for (i=1;i<=NF;i++) print "column= " $i "\n"}' $file 
+
+# itérer ligne et column
+awk '/a/ {line = $0} /c/ {
+	print "line= "$line
+	print "column= "$1
+}' $file

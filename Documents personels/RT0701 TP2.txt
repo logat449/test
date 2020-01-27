@@ -1,0 +1,51 @@
+# Gestion des logs 
+
+# ####### Debian (Serveur SYSLOG-NG)
+
+-| installation
+apt-get install syslog-ng
+
+-| configuration
+/etc/syslog-ng/syslog-ng.conf
+
+-| manage syslog-ng service
+/etc/init.d/syslog-ng start/stop/restart/reload/status
+/etc/init.d/syslog-ng restart
+systemctl start/stop/restart/reload/status syslog-ng
+
+-| debuger configuration syslog-ng
+/sbin/syslog-ng (-F optionel)
+
+
+-|  Filtrer les opérations d’authentification (locale, SSH, su, sudo)
+filter f_sudo {program(sudo)};
+filter auth_errors { level(error) and facility(auth); };
+
+################ ALL client ################
+
+# connaitre le système de log utilisé sur le système
+ls -d /etc/*syslog*
+
+
+-|####### CentOS
+
+-| installation 
+apt-get install syslog-ng
+
+
+-|####### Alpine
+
+on n'utilisera pas syslogd
+
+# installation syslog-ng
+
+-| installation syslog-ng
+apk add syslog-ng
+
+-| debug config file
+/usr/sbin/syslog-ng
+
+# démarrage de syslog-ng
+/etc/init.d/syslog-ng status
+
+

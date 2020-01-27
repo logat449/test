@@ -1,0 +1,13 @@
+insérer le disque des addons invités
+
+# monter l'image
+sudo mount /dev/cdrom /mnt
+
+# aller dans le dossier de l'image
+cd /mnt
+
+# installation
+sudo su
+./VboxLinuxAdditions.run
+
+reboot

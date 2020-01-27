@@ -1,0 +1,38 @@
+# fermer un fichier
+CTRL+X
+
+# enregistrer un fichier
+CTRL+O
+
+# rechercher
+CTRL+W
+
+# rechercher et remplacer
+CTRL+SHIT+8 (CTRL+\)
+
+# copier/couper/coller & selectionner 
+Selectionner texte : ALT+SHIT+A (ou CTRL+6)
+Copier : ALT+SHIFT+6
+Couper : CTRL + K
+Coller : CTRL+U
+
+# undo
+ESC+U
+ALT+U
+
+# redo
+
+
+# annuler qqch en cours
+
+
+# déplacer le curseur au début ou à la fin du fchier
+ALT+PGDUP ou PGDDOWN
+
+# afficher les numéro de ligne du fichier 
+> ouvrir le fichier avec nano -c file
+ou faire ctrl+c pour afficher le numéro de la ligne courante
+
+# commenter une ou plusieurs lignes 
+ESC+3pavé numérique
+ALT+SHIT+A pour selectionner ligne > ESC+3 pavé num

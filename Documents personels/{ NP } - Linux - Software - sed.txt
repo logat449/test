@@ -1,0 +1,4 @@
+# enlever les lignes vides
+ sed -e /^$/d
+
+ 

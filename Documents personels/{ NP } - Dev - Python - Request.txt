@@ -1,0 +1,2 @@
+# installation du module
+pip3 install requests

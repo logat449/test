@@ -1,0 +1,34 @@
+-| creer dossier 
+mkdir -p /var/www/html/rt1.mrt/
+
+-| set permission
+chown -R superv:superv /var/www/html/rt1.mrt/
+chmod -R 755 /var/www/html/rt1.mrt/
+
+-| edition du fichier index.html
+nano /var/www/html/rt1.mrt/index.html
+
+-| création des 3 virtual host
+nano /etc/apache2/sites-available/rt1.mrt.conf
+#################################################
+<VirtualHost *:80>
+    ServerAdmin admin@rt1.mrt
+    ServerName rt1.mrt
+    ServerAlias www.rt1.mrt
+    DocumentRoot /var/www/html/rt1.mrt/
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+####################################################
+
+-| activation du virtual host 
+a2ensite rt1.mrt.conf
+
+-| ajout de l'entrée dans le fichier hosts
+127.0.0.1 rt1.mrt
+127.0.0.1 rt2.mrt
+127.0.0.1 rt3.mrt
+127.0.0.1 www.rt1.mrt
+
+-| on vérifie l'accès à tous ses sites avec lynx 
+lynx http://rt1.mrt / www.rt1.mrt

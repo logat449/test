@@ -1,0 +1,44 @@
+# creer un script shell
+creer un fichier.sh
+
+# rendre exécutable le fichier.sh
+chmod +x fichier.sh
+
+# afficher la version de bash 
+echo "${BASH_VERSION}" 
+
+# déclarer l'entête script shell
+#!/bin/bash
+
+# déclarer une variable
+var=0
+
+# utiliser une variable
+$var
+
+# déclarer un tableau associatif
+
+	-| Create an associative array
+	declare -A MYMAP    
+
+	-| Put a value into an associative array
+	MYMAP[foo]=bar   
+
+	-| Get a value out of an associative array    
+	echo ${MYMAP[foo]}  
+
+# déclarer un tableau associatif avec une liste comme valeur
+
+	-| Create an associative array
+	declare -A MYMAP    
+
+	-| Put a value into an associative array
+	MYMAP[foo,1]="value_list_1"  
+	MYMAP[foo,2]="value_list_2"
+
+	-| Get a value out of an associative array    
+	echo ${MYMAP[foo,1]}  
+	echo ${MYMAP[foo,2]} 
+
+# afficher la taille d'un tableau 
+echo "size= "${#MYMAP[@]} 

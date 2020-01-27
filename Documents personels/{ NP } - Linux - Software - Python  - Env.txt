@@ -1,0 +1,32 @@
+# installer les outils d'envrionnement virtuel
+
+sudo apt-get install python3
+sudo apt-get install python3.pip
+
+sudo apt install virtualenv
+sudo pip3 install virtualenv
+
+# creer un environnement virtuel
+
+cd /home/user
+
+virtualenv  venv (utilise python2)
+virtualenv --python=python3 venv (pour utiliser python3)
+virtualenv -p python3 env (similaire pour utliser python3)
+
+# activer l'environnement créer
+source env/bin/activate
+==> l'invite du shell a changé
+
+# supprimer un environnement virtuel
+
+-| désactiver l'environnement virtuel
+deactivate
+
+-| supprimer son répertoire
+rm -rf nom_env
+
+
+
+
+

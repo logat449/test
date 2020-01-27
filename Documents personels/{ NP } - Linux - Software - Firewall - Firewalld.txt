@@ -1,0 +1,7 @@
+# connaitre l'état du firewalld
+firewall-cmd --state
+
+# connaitre la zone qui est actuellement séléctionné
+firewall-cmd --get-default-zone
+
+# firewall-cmd --zone=public --add-service=http

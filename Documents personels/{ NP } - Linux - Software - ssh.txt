@@ -1,0 +1,16 @@
+# installation ssh (ubuntu server)
+
+# connexion à un serveur
+ssh user@IP -p port_number
+
+# fichier de configuration ssh
+/etc/sshd/sshd_config
+
+# configurer ssh pour accepter l'authentifcation par login/pass
+port 22
+
+# génération d'une clé RSA pour authentification
+ssh-keygen -t rsa -b 4096 -C "test@test.com"
+nom clé: test_rsa
+passphrase: test_rsa
+stocker dans : /home/test

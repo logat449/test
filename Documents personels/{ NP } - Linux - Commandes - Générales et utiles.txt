@@ -1,0 +1,131 @@
+###################################################
+################# PAQUET ##########################
+###################################################
+
+# vérifier si un paquet est installé
+
+1.Method
+dpkg-query -l | grep -i python3
+dpkg -s {package_name}
+dpkg -S {package_name}
+
+2.Method
+apt-cache policy {package_name}
+
+3.Method
+locate --basename {package_name}
+
+# connaitre l'executable responsable de la commande spécifiée
+which dir
+which python3
+
+# connaitre l'ensemble de tous les exécutables qui sont lancés avec la commande spécifiée
+whereis python3
+
+# savoir si le paquet est déjà installé et tous ceux qui en découlent
+dpkg-query --list 
+
+###################################################
+################# Dossier/Fichier #################
+###################################################
+
+# raccourci ~/
+correspond à votre dossier /home/nom_user
+
+# supprimer un dossier et tous ses enfants
+rm -rf nom_dossier
+
+# trouver tous les fichiers contenant un certain nom
+find -name nom_dossier
+
+# afficher la liste des dossiers et fichiers récursivement
+ls 
+
+# afficher les fichier cachés
+ls -a
+
+# change le propritétaire d'un dossier
+chown -R superv:superv /home/superv/webdav
+chmod -R 755 /home/superv/webdav
+
+# afficher tous les dossiers/fichiers d'un dossier
+ls -lR
+
+###################################################
+################# System ##########################
+###################################################
+
+# Information sur le CPU
+cat /proc/cpuinfo
+
+# MHz du processeur 
+cat /proc/cpuinfo | grep 'cpu MHz'
+
+# CPOU usage
+cat /proc/loadavg
+
+# empêcher un logiciel/service de démarrer au boot
+sudo systemctl disable nom_service
+
+###################################################
+################# NETWORK ##########################
+###################################################
+
+netstat -peanuts
+netstat -peanut
+
+
+###################################################
+################# Commande/SHELL ##########################
+###################################################
+
+# rechercher une commande dans l'historique et l'exécuter
+history | grep bout_de_cmd
+!N°command (pr l'exécuter)
+
+# rechercher un élément précis dans le résultat d'une cmd
+ma_command | grep élement_précis
+
+# renvoyer l'adresse ip d'un interface spécifié (enp0s3)
+ip addr | grep "enp0s3" | grep inet | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | grep -m1 ""
+ip addr | grep "enp0s3" | grep inet | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | grep -v "255"
+
+# renvoyer le nom de tous les interfaces
+ip addr | grep -oE "[a-z0-9]{2,9}:\s" | sed 's/://g'
+
+# rechercher et remplacer une chaine ou un character
+sed 's/oldstring/new string/g' // pour un résultat de commande
+sed -i 's/oldstring/new string/g' // dans une fichier
+
+# adresse ip de la machine
+ip route get 1.2.3.4 | awk '{print $7}'
+hostname -I | grep -Eo '^[^ ]+'
+/sbin/ifconfig eth1 | grep 'inet addr:' | cut -d: -f2| cut -d' ' -f1
+/sbin/ifconfig enp0s3 | grep 'inet\b' | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" | grep -v "255"
+
+- espace disque disponible
+df /dev/sda1 | tail -n 1 | awk '{print $4}'
+df --output=avail /dev/sda1 | tail -n 1 (output non compatible avec alpine)
+
+- espace disque utilisé(%)
+df -h | awk '$NF=="/"{printf "%s\t\t", $5}'
+df -h | sed -n 6p | grep -oE "[0-9][0-9]%"
+
+- espace disque libre(%)
+df -h | awk '$NF=="/"{printf "%s\t\t", 100-$5}'
+df -h | sed -n 6p | grep -oE "[0-9][0-9]%"
+df -h | sed -n 6p | grep -oE "[0-9][,][0-9]G" | tail -1
+
+- charge cpu instantanée
+ps -o %cpu
+top -d 0.5 -b -n2 | grep "Cpu(s)"| tail -n 1 | awk '{print $2 + $4}'
+top -b -n1 | grep "Cpu(s)" | awk '{print $2 + $4}' 
+
+- charge cpu instantané utilisée
+top -bn1 | grep load | awk '{printf "%.2f%%\t\t\n", $(NF-2)}'
+
+- RAM (percentage of RAM used)
+free -m | awk 'NR==2{printf "%.2f%%\t\t", $3*100/$2 }' 
+
+# grep le premier mot (jusqu'au premiere espace) d'une ligne 
+grep -Eo '^[^ ]+'

@@ -1,0 +1,7 @@
+# redimensionner le disque dur d'une VM
+VBoxManage modifyhd "C:\path_to_my_VM\name_of_vdi_file.vdi" --resize 81920 (80gb)
+VBoxManage modifymedium disk "C:\path_to_my_VM\name_of_vdi_file.vdi" --resize 81920 (80gb)
+
+# suffit de se rendre dans fichier > gestionnaire de media > resize
+# booter sur gparted et redimensionner le disque 
+# redémmarrer

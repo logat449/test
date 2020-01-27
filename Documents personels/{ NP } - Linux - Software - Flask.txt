@@ -1,0 +1,11 @@
+# Lancer la console flask
+
+Dans votre projet 
+>  FLASK_APP=run.py flask shell
+
+
+# conanitre la version de flask installé
+cd /projet/où se trouve le fichier run.py
+FLASK_APP=run.py flask shell
+>> import flask
+>> flask.__version__

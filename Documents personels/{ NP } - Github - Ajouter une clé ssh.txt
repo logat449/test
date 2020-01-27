@@ -1,0 +1,13 @@
+# Generating a new SSH key
+ssh-keygen -t rsa -b 4096 -C "saddikiu@gmail.com"
+# dossier d'enregistrement de la clé
+/home/test/.ssh/id_github_rsa
+# pss
+12345
+# eval key
+eval $(ssh-agent -s)
+# add key to auth
+ssh-add /home/test/.ssh/id_github_rsa
+# ajouter la clé sur compte github
+avec winscp ouvrir /home/test/.ssh/id_github_rsa.pub et copier coller çà dans les settings github > ssh key
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDC5UgQ0RJgpOiOsvuyhO59yvL61hvrWSWD6z44tfdlj+/bwuNggk+q8WUhP/dmMgA04wT4vRuIcsSxvcjS17OqAppVLdH7WlsaX5MYkjRXX7W9VSwdub9TogLfvgaEsxO4e3y5PArYTmPg/pcfk8Ptm+PQs9T+QYXQls45lXo96Zn01NzwA3T9hs3g737J9zcJK6Ni9lNYEHLRF+3/Tp5nE7P5+BOI9Cg9hJjvZY/rSMvBV/YR2fbc56V1j9QJdO+nPnubqx6nXmOmNwaJeb6ZBPZtaVYpOIwZvO3Nq90iltMRPBIR9sZrNJnsdgM34JcUxUakf0g2xH/xWl0Bxnqddx4NbaZSqy/zDo2wR11WiSs96qWZKbLQCDxw0j+n+iIORcS60CBmUZBthQZhiZb31qKL00/8pGIu0gnFF0qFm2GbDSJq8w8kP/d/eyV+hSvWWSU20sLginXZv1I2xT+BvvVmHC3r36ESslV//mqyo8b2KnejiSQnX4dyk4LCIAMkapXolD4B7BD1D4nlHpo/YPCdual5vrXyLhyVuChOEQrmNWRCn6j+fZVKsYyWkFabNJhIjci6ZOFWqZZ8LR3ivae5wc9rA5rAnuyq4r93Dml7q1w3OJM2HRWf3ofUefIPGhrcwjlTm5lzaaqBCL+MSi6uvD359omGjj+02pXeAQ== saddikiu@gmail.com

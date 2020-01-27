@@ -1,0 +1,2 @@
+# ne pas grep les lignes commençant par '0'
+grep -v "^[0]"
